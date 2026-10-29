@@ -180,6 +180,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .cal .d i{font-style:normal;font-size:8.5px;font-family:var(--font-ui);font-weight:700;line-height:1;text-transform:uppercase;letter-spacing:.04em}
 .legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);padding:0 16px 14px}
 .legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;background:var(--c)}
+.legend span.lg-empty::before{background:transparent;border:1px dashed var(--accent);box-sizing:border-box}
 .block{border-top:1px solid var(--line);padding:16px;display:flex;flex-direction:column;gap:12px}
 .block h3{margin:0;font-size:14px;font-weight:800}
 .kv{display:grid;grid-template-columns:1fr auto;gap:7px 12px;font-size:14px;margin:0}
@@ -287,7 +288,7 @@ footer{font-size:12px;color:var(--muted);text-align:center}
     </div>
     <div class="card">
       <div class="cal" id="cal"></div>
-      <div class="legend"><span style="--c:var(--accent)">Masuk kerja</span><span style="--c:var(--pink-soft)">Libur dibayar</span><span style="--c:var(--warn-soft)">Izin / sakit (tidak dibayar)</span><span style="--c:transparent;outline:1px dashed var(--accent)">Belum diisi</span></div>
+      <div class="legend"><span style="--c:var(--accent)">Masuk kerja</span><span style="--c:var(--pink-soft)">Libur dibayar</span><span style="--c:var(--warn-soft)">Izin / sakit (tidak dibayar)</span><span class="lg-empty">Belum diisi</span></div>
       <p class="hint calhint">Ketuk tanggal untuk mengisi, mengganti, atau membatalkan absen.</p>
       <div class="daypanel" id="dayPanel" hidden></div>
     </div>
