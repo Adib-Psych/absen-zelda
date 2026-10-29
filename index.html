@@ -71,6 +71,11 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);font-size:
 .opt[aria-pressed="true"] small{color:var(--hero);opacity:.72}
 .opt:disabled{opacity:.5;cursor:default}
 .today-note{font-size:12px;color:var(--on-hero-muted);min-height:1em}
+.tstat{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.08)}
+.tstat-txt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.tstat .k{font-size:12px;color:var(--on-hero-muted)}
+.tstat .v{font-weight:800;font-size:16px}
+.gocal{flex:0 0 auto;background:var(--on-hero);color:var(--hero);border:0;font:700 13px var(--font-ui);padding:9px 14px;border-radius:999px;cursor:pointer}
 .cal button.d{border:0;cursor:pointer;font:inherit;font-family:var(--font-num);font-size:13px}
 .cal button.d:disabled{cursor:default}
 .cal .d.sel{box-shadow:0 0 0 2px var(--pink)}
@@ -262,10 +267,9 @@ footer{font-size:12px;color:var(--muted);text-align:center}
       <div class="tz">Waktu Indonesia Barat</div>
     </div>
 
-    <div class="opts" role="group" aria-label="Absen Zelda hari ini">
-      <button type="button" class="opt" id="optKerja" aria-pressed="false">Masuk kerja<small>dibayar</small></button>
-      <button type="button" class="opt" id="optLibur" aria-pressed="false">Libur<small>jatah mingguan</small></button>
-      <button type="button" class="opt" id="optIzin" aria-pressed="false">Izin<small>ada keperluan</small></button>
+    <div class="tstat">
+      <div class="tstat-txt"><span class="k">Absen hari ini</span><span class="v" id="tStat">–</span></div>
+      <button type="button" class="gocal" id="goCal">Isi di kalender ↓</button>
     </div>
     <div class="today-note" id="attMsg" aria-live="polite"></div>
 
@@ -561,7 +565,7 @@ footer{font-size:12px;color:var(--muted);text-align:center}
   }
 
   // ---------- hero ----------
-  const OPTS=[["optKerja","hadir"],["optLibur","libur"],["optIzin","izin"]];
+  const OPTS=[]; // absen hanya diisi lewat kalender
   const JENIS=[["hadir","Masuk kerja","dibayar"],["libur","Libur mingguan","dibayar, 1 hari/minggu"],["izin","Izin","ada keperluan"],["sakit","Sakit","semoga lekas pulih"]];
   const JLABEL=Object.fromEntries(JENIS.map(j=>[j[0],j[1]]));
   function statusText(key){
@@ -578,11 +582,11 @@ footer{font-size:12px;color:var(--muted);text-align:center}
     const a=absen[t];const before=cfg.mulai&&t<cfg.mulai;
     OPTS.forEach(([id,j])=>{const b=$(id);b.setAttribute("aria-pressed",String(!!a&&(a.jenis===j||(j==="izin"&&a.jenis==="sakit"))));b.disabled=!canWrite||!!before||isOwner;});
     const note=$("attMsg");
-    if(isOwner){note.textContent=(a?"Tercatat: "+statusText(t)+(a.catatan?" · "+a.catatan:"")+". ":"Zelda belum absen hari ini. ")+"Absen diisi Zelda dari HP-nya. Untuk koreksi, ketuk tanggalnya di kalender.";}
-    else if(before) note.textContent="Zelda mulai bekerja "+fmtDate(cfg.mulai)+".";
-    else if(a){note.textContent="Tercatat: "+statusText(t)+(a.catatan?" · "+a.catatan:"")+". ";
-      if(canWrite){const u=el("button","undo","Batalkan");u.type="button";u.addEventListener("click",async()=>{u.disabled=true;try{await setDayUndoable(t,null);}catch(_){u.disabled=false;}});note.appendChild(u);}}
-    else note.textContent="Belum diisi. Ketuk salah satu pilihan untuk absen hari ini.";
+    $("tStat").textContent=before?"Belum mulai bekerja":a?statusText(t):"Belum diisi";
+    $("goCal").textContent=isOwner?"Lihat di kalender ↓":(a?"Ubah di kalender ↓":"Isi di kalender ↓");
+    $("goCal").hidden=!!before;
+    if(before) note.textContent="Zelda mulai bekerja "+fmtDate(cfg.mulai)+".";
+    else note.textContent=(a&&a.catatan?a.catatan+" · ":"")+(isOwner?"Absen diisi Zelda lewat kalender di bawah.":"Absen diisi lewat kalender di bawah.");
     const mk=monthKey(t);
     $("earnLbl").textContent="Gaji Zelda terkumpul · "+monthLabel(mk);
     if(!cfg.gaji||!cfg.mulai){$("earnAmt").textContent="–";$("earnOf").textContent="";$("barAdv").style.width="0";$("barRest").style.width="0";$("earnDays").textContent="Atur gaji & tanggal mulai di Pengaturan";$("earnAdv").textContent="";return;}
@@ -620,6 +624,8 @@ footer{font-size:12px;color:var(--muted);text-align:center}
     finally{OPTS.forEach(([i])=>$(i).disabled=!canWrite||isOwner);if(document.activeElement)document.activeElement.blur();}
   }));
 
+  $("goCal").addEventListener("click",()=>{const t=todayISO();const sel=$("absMonth");if(sel.value!==monthKey(t)){sel.value=monthKey(t);}selDay=t;renderCal();
+    const p=$("dayPanel");(p.hidden?$("cal"):p).scrollIntoView({behavior:"smooth",block:"center"});});
   // ---------- months ----------
   function allMonths(){
     const s=new Set([monthKey(todayISO())]);
