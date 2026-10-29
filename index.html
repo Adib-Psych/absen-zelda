@@ -93,6 +93,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);font-size:
 .who{display:flex;justify-content:center;gap:10px;align-items:center;font-size:13px;color:var(--muted)}
 .who button{background:none;border:0;color:var(--accent-ink);font:700 13px var(--font-ui);cursor:pointer;text-decoration:underline}
 .sync{font-size:12px;color:var(--muted);text-align:center}
+.linkbox{display:flex;flex-direction:column;gap:8px;align-items:flex-start;padding:12px 0 16px;border-bottom:1px solid var(--line);margin-bottom:12px}
 .undo{background:transparent;border:1px solid rgba(255,255,255,.4);color:var(--on-hero);font:700 12px var(--font-ui);padding:4px 10px;border-radius:999px;cursor:pointer;margin-left:6px}
 .btn.cancel{color:var(--bad);border-color:var(--bad)}
 .snack{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:50;background:var(--hero);color:var(--on-hero);border-radius:14px;padding:10px 10px 10px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 10px 30px rgba(0,0,0,.25);font-size:14px;width:min(380px,calc(100vw - 32px));justify-content:space-between}
@@ -233,14 +234,11 @@ footer{font-size:12px;color:var(--muted);text-align:center}
 </head>
 <body>
 <div class="gate" id="gate">
-  <form class="gate-card" id="gateForm" novalidate>
+  <div class="gate-card">
     <div class="gate-kicker">Kas Perawatan Emak</div>
-    <h1>Masukkan PIN</h1>
-    <p>PIN diberikan Mas Adib. Cukup sekali di HP ini, berikutnya langsung terbuka.</p>
-    <input id="gatePin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="12" placeholder="••••••" aria-label="PIN">
-    <button class="btn" type="submit" id="gateBtn">Masuk</button>
-    <div class="formmsg" id="gateMsg" role="status"></div>
-  </form>
+    <h1 id="gateTitle">Membuka…</h1>
+    <p id="gateMsg">Sebentar, sedang memuat catatan.</p>
+  </div>
 </div>
 <div class="wrap" id="app" hidden>
   <section class="hero" aria-labelledby="heroDate">
@@ -867,12 +865,14 @@ footer{font-size:12px;color:var(--muted);text-align:center}
   setInterval(()=>{if(!document.hidden)renderHero();},60000);
   // ---------- backend: Google Apps Script + Google Sheet ----------
   const API_URL="https://script.google.com/macros/s/AKfycbywG9-dDRFJUgWYp6L5DvRE6PkHiNScREFI0_f5ND_28_hJv7stVna-GCAEt0c1PYWg/exec";
-  const PIN_KEY="kasEmakPin";
+  const PIN_KEY="kasEmakKey";
   let pin=null;try{pin=localStorage.getItem(PIN_KEY);}catch(_){}
+  const hk=(location.hash.match(/k=([A-Za-z0-9_-]{20,})/)||[])[1];
+  if(hk){pin=hk;try{history.replaceState(null,"",location.pathname+location.search);}catch(_){}}
   let store=null,pending=0;const subs=[];
   async function call(body){
     if(!API_URL)throw Object.assign(new Error("belum disambungkan"),{code:"no_api"});
-    let r;try{r=await fetch(API_URL,{method:"POST",body:JSON.stringify(Object.assign({pin},body))});}catch(e){throw Object.assign(new Error("jaringan"),{code:"network"});}
+    let r;try{r=await fetch(API_URL,{method:"POST",body:JSON.stringify(Object.assign({key:pin},body))});}catch(e){throw Object.assign(new Error("jaringan"),{code:"network"});}
     let j;try{j=await r.json();}catch(e){throw Object.assign(new Error("respon"),{code:"network"});}
     if(!j.ok){const code=j.error==="tidak diizinkan"?"invalid_argument":j.error==="too_large"?"too_large":j.error;throw Object.assign(new Error(j.error),{code});}
     return j;
@@ -902,15 +902,21 @@ footer{font-size:12px;color:var(--muted);text-align:center}
     set:d=>write("set",col,id,d)};}};
   const toB64=blob=>new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(String(fr.result).split(",")[1]);fr.onerror=rej;fr.readAsDataURL(blob);});
   const NAMES={adib:"Mas Adib",zelda:"Zelda"};
-  async function refresh(){if(pending||!pin)return;try{take(await call({op:"load"}));}catch(e){if(e.code==="pin"){logout();}}}
-  function logout(){pin=null;try{localStorage.removeItem(PIN_KEY);}catch(_){}location.reload();}
-  function start(role){
+  async function refresh(){if(pending||!pin)return;try{take(await call({op:"load"}));}catch(e){if(e.code==="kunci"){logout();}}}
+  function logout(){pin=null;try{localStorage.removeItem(PIN_KEY);}catch(_){}gateShow("Link sudah tidak berlaku","Minta link baru ke Mas Adib lewat WhatsApp, lalu buka link itu di HP ini.");}
+  function gateShow(t,m){$("gate").hidden=false;$("app").hidden=true;$("gateTitle").textContent=t;$("gateMsg").textContent=m;}
+  function start(role,linkZelda){
     db=api;myId=role;isOwner=role==="adib";
     user={me:async()=>({id:role,isOwner}),can:async()=>true,profiles:async ids=>Object.fromEntries(ids.map(i=>[i,{name:NAMES[i]||i}]))};
     assets={upload:async(blob,o)=>{const r=await call({op:"upload",type:(o&&o.type)||blob.type||"image/jpeg",base64:await toB64(blob)});return{id:r.id,contentType:r.contentType};}};
     $("gate").hidden=true;$("app").hidden=false;
-    const who=$("who");who.textContent="";who.append("Masuk sebagai "+(NAMES[role]||role)+" · ");const lo=el("button",null,"Keluar");lo.type="button";lo.addEventListener("click",logout);who.appendChild(lo);
-    if(isOwner)$("settingsBox").hidden=false;
+    $("who").textContent="Masuk sebagai "+(NAMES[role]||role);
+    if(isOwner){$("settingsBox").hidden=false;
+      if(linkZelda&&!$("linkBox")){const box=el("div","linkbox");box.id="linkBox";
+        box.append(el("strong",null,"Link untuk Zelda"),el("span","hint","Kirim lewat WhatsApp. Sekali dibuka di HP Zelda, berikutnya halaman langsung terbuka tanpa link."));
+        const b=el("button","btn small","Salin link Zelda");b.type="button";
+        b.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(linkZelda);b.textContent="Tersalin ✓";}catch(_){prompt("Salin link ini:",linkZelda);}setTimeout(()=>b.textContent="Salin link Zelda",2500);});
+        box.appendChild(b);$("settingsBox").insertBefore(box,$("formCfg"));}}
     const listOf=snap=>snap.docs.filter(s=>s.exists).map(s=>Object.assign({id:s.id},s.data()));
     db.collection("belanja").onSnapshot(snap=>{belanja=listOf(snap);belanja.sort((x,y)=>(y.tanggal||"").localeCompare(x.tanggal||"")||(y.dibuat||"").localeCompare(x.dibuat||""));renderAll();});
     db.collection("absen").onSnapshot(snap=>{absen={};snap.docs.forEach(s=>{if(s.exists)absen[s.id]=s.data();});renderAll();});
@@ -924,17 +930,16 @@ footer{font-size:12px;color:var(--muted);text-align:center}
     setInterval(()=>{if(!document.hidden)refresh();},45000);
     document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh();});
   }
-  async function login(p,silent){
-    const btn=$("gateBtn");btn.disabled=true;if(!silent)setMsg("gateMsg","Memeriksa…","");
+  async function login(p){
     pin=p;
-    try{const j=await call({op:"load"});try{localStorage.setItem(PIN_KEY,p);}catch(_){}store=j.data;start(j.role);}
-    catch(e){pin=null;try{localStorage.removeItem(PIN_KEY);}catch(_){}
-      $("gate").hidden=false;$("app").hidden=true;
-      setMsg("gateMsg",e.code==="pin"?"PIN salah. Coba lagi.":e.code==="terkunci"?"Terlalu banyak PIN salah. Coba lagi 15 menit lagi.":e.code==="no_api"?"Halaman belum disambungkan ke penyimpanan. Hubungi Mas Adib.":"Tidak bisa tersambung. Periksa sinyal lalu coba lagi.","err");}
-    finally{btn.disabled=false;}
+    try{const j=await call({op:"load"});try{localStorage.setItem(PIN_KEY,p);}catch(_){}store=j.data;start(j.role,j.linkZelda);}
+    catch(e){
+      if(e.code==="kunci"){logout();return;}
+      gateShow("Belum tersambung",e.code==="no_api"?"Halaman belum disambungkan ke penyimpanan. Hubungi Mas Adib.":"Periksa sinyal internet, lalu muat ulang halaman ini.");}
   }
-  $("gateForm").addEventListener("submit",ev=>{ev.preventDefault();const p=$("gatePin").value.trim();if(p)login(p);});
-  if(pin){$("gate").hidden=true;$("app").hidden=false;setMsg("gateMsg","","");login(pin,true);}
+  window.addEventListener("hashchange",()=>{if(/k=/.test(location.hash))location.reload();});
+  if(pin)login(pin);
+  else gateShow("Buka lewat link dari Mas Adib","Halaman ini hanya terbuka lewat link khusus yang dikirim Mas Adib. Sekali dibuka, HP ini akan mengingatnya.");
 })();
 </script>
 </body>
