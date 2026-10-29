@@ -141,6 +141,7 @@ legend{font-size:13px;font-weight:600;color:var(--muted);padding:0;margin-bottom
 .choice{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .choice3{grid-template-columns:repeat(3,minmax(0,1fr))}
 .choice3 label{padding:10px 8px}
+.choice4 label{padding:10px 8px}
 .posgrp{margin-top:6px;padding-top:10px;border-top:1px solid var(--line)}
 .posgrp:first-child{border-top:0;margin-top:0;padding-top:0}
 .poshead{display:flex;justify-content:space-between;font-weight:800;font-size:14px;margin-bottom:6px}
@@ -313,10 +314,11 @@ footer{font-size:12px;color:var(--muted);text-align:center}
       <label for="oWhat">Barang / keperluan<input id="oWhat" maxlength="120" placeholder="mis. Pampers dewasa M isi 10" required><span class="hint">Satu nota berisi barang dari kategori berbeda? Catat terpisah per kategori, supaya rekapnya tepat.</span></label>
       <fieldset>
         <legend>Untuk keperluan</legend>
-        <div class="choice choice3">
+        <div class="choice choice4">
           <label for="posE"><input type="radio" name="pos" id="posE" value="emak" checked><span>Emak<small>Perawatan</small></span></label>
           <label for="posR"><input type="radio" name="pos" id="posR" value="rumah"><span>Rumah<small>Ngantang</small></span></label>
           <label for="posK"><input type="radio" name="pos" id="posK" value="kebun"><span>Kebun<small>Kopi</small></span></label>
+          <label for="posA"><input type="radio" name="pos" id="posA" value="adib"><span>Mas Adib<small>Pribadi</small></span></label>
         </div>
       </fieldset>
       <label for="oCat">Kategori<select id="oCat"></select><span class="hint" id="catHint"></span></label>
@@ -378,7 +380,7 @@ footer{font-size:12px;color:var(--muted);text-align:center}
       <h2 id="ledgerTitle">Riwayat belanja</h2>
       <div class="filters">
         <select id="fMonth" aria-label="Filter bulan"><option value="all">Semua bulan</option></select>
-        <select id="fPos" aria-label="Filter keperluan"><option value="all">Semua keperluan</option><option value="emak">Emak</option><option value="rumah">Rumah</option><option value="kebun">Kebun</option></select>
+        <select id="fPos" aria-label="Filter keperluan"><option value="all">Semua keperluan</option><option value="emak">Emak</option><option value="rumah">Rumah</option><option value="kebun">Kebun</option><option value="adib">Mas Adib</option></select>
         <select id="fPay" aria-label="Filter pembayar">
           <option value="all">Semua</option><option value="yangti">Dibayar Yangti</option><option value="zelda">Ditalangi Zelda</option><option value="due">Belum diganti</option>
         </select>
@@ -414,7 +416,7 @@ footer{font-size:12px;color:var(--muted);text-align:center}
 <script>
 (function(){
   "use strict";
-  const POS=[["emak","Emak","Perawatan Emak"],["rumah","Rumah","Rumah Ngantang"],["kebun","Kebun","Kebun kopi"]];
+  const POS=[["emak","Emak","Perawatan Emak"],["rumah","Rumah","Rumah Ngantang"],["kebun","Kebun","Kebun kopi"],["adib","Mas Adib","Adib (pribadi)"]];
   const POS_LABEL=Object.fromEntries(POS.map(p=>[p[0],p[2]]));
   // [kunci, pos, nama, termasuk]
   const CATS=[
@@ -437,6 +439,8 @@ footer{font-size:12px;color:var(--muted);text-align:center}
     ["upah","kebun","Upah pekerja kebun","upah harian atau borongan"],
     ["alatkebun","kebun","Alat & perlengkapan kebun","cangkul, gunting pangkas, karung, terpal"],
     ["transkebun","kebun","Angkut & transport kebun","ongkos angkut, bensin ke kebun"],
+    ["transadib","adib","Transport Mas Adib","bensin, tol, ojek atau travel untuk perjalanan Mas Adib"],
+    ["pribadi","adib","Keperluan pribadi Mas Adib","barang atau titipan untuk Mas Adib sendiri"],
     ["lain","*","Lain-lain","yang tidak cocok di kategori lain, tulis keterangannya di Catatan"]
   ];
   const CAT_BY=Object.fromEntries(CATS.map(c=>[c[0],c]));
