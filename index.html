@@ -1,0 +1,941 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Kas Perawatan Emak</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: hero lembayung (tanggal hari ini + absen + gaji terkumpul & advance) → ringkasan → catat → absensi, gaji & advance → pengeluaran → riwayat. Satu kolom, HP dulu. */
+:root{
+  --bg:#F8F6FB; --surface:#FFFFFF; --ink:#241B33; --muted:#6E6380; --line:#E4DDEE; --soft:#F2EDF8;
+  --hero:#3F2D5C; --on-hero:#FBF8FE; --on-hero-muted:#CFC2E3;
+  --accent:#8C6BB1; --accent-ink:#6A4C93; --accent-soft:#EDE4F5;
+  --pink:#D98CA5; --pink-ink:#A4486A; --pink-soft:#F8E6EC;
+  --ok:#3E7A5E; --ok-soft:#E5F0EA; --warn:#A36410; --warn-soft:#FBEEDB; --bad:#A8322A; --bad-soft:#F8E3E0;
+  --font-ui:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-num:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --shadow:0 1px 2px rgba(63,45,92,.06),0 10px 26px -14px rgba(63,45,92,.25);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#15111C; --surface:#1E1828; --ink:#EEE8F6; --muted:#A89CBB; --line:#342A44; --soft:#262033;
+  --hero:#2A1F3E; --on-hero:#FBF8FE; --on-hero-muted:#C9BCDD;
+  --accent:#B79BDB; --accent-ink:#C9B2E8; --accent-soft:#2E2540;
+  --pink:#E6A3B8; --pink-ink:#EBAFC2; --pink-soft:#3A2430;
+  --ok:#8CCAA9; --ok-soft:#1D2A24; --warn:#E8B45A; --warn-soft:#3A2D17; --bad:#F0918A; --bad-soft:#3B1E1B;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px -14px rgba(0,0,0,.6); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#15111C; --surface:#1E1828; --ink:#EEE8F6; --muted:#A89CBB; --line:#342A44; --soft:#262033;
+  --hero:#2A1F3E; --on-hero:#FBF8FE; --on-hero-muted:#C9BCDD;
+  --accent:#B79BDB; --accent-ink:#C9B2E8; --accent-soft:#2E2540;
+  --pink:#E6A3B8; --pink-ink:#EBAFC2; --pink-soft:#3A2430;
+  --ok:#8CCAA9; --ok-soft:#1D2A24; --warn:#E8B45A; --warn-soft:#3A2D17; --bad:#F0918A; --bad-soft:#3B1E1B;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px -14px rgba(0,0,0,.6); color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 56px}
+.wrap{max-width:680px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+.num{font-family:var(--font-num);font-variant-numeric:tabular-nums}
+.eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700}
+.notice{border-radius:12px;padding:12px 14px;font-size:14px;background:var(--warn-soft);color:var(--ink)}
+.notice.bad{background:var(--bad-soft)}
+
+/* HERO */
+.hero{position:relative;overflow:hidden;border-radius:20px;background:var(--hero);color:var(--on-hero);padding:20px 20px 18px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:18px}
+.hero::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.12;
+  background-image:
+    radial-gradient(ellipse 14px 22px at 50% 0,var(--pink) 98%,transparent 100%),
+    radial-gradient(ellipse 14px 22px at 50% 100%,var(--pink) 98%,transparent 100%),
+    radial-gradient(ellipse 22px 14px at 0 50%,var(--on-hero) 98%,transparent 100%),
+    radial-gradient(ellipse 22px 14px at 100% 50%,var(--on-hero) 98%,transparent 100%);
+  background-size:56px 56px;-webkit-mask-image:linear-gradient(115deg,transparent 35%,#000 100%);mask-image:linear-gradient(115deg,transparent 35%,#000 100%)}
+.hero > *{position:relative}
+.hero .eyebrow{color:var(--on-hero-muted)}
+.date-day{font-size:15px;font-weight:600;color:var(--pink);margin-top:10px}
+.date-big{font-size:34px;line-height:1.05;font-weight:800;letter-spacing:-.01em;text-wrap:balance}
+.tz{font-size:12px;color:var(--on-hero-muted)}
+.att{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.att-label{font-size:13px;color:var(--on-hero-muted);font-weight:600}
+.att-status{font-size:18px;font-weight:700}
+.att-status small{display:block;font-size:12px;font-weight:500;color:var(--on-hero-muted)}
+.att-actions{display:flex;gap:8px;flex-wrap:wrap}
+.hbtn{border:1px solid rgba(255,255,255,.28);background:transparent;color:var(--on-hero);font:700 13px var(--font-ui);padding:9px 14px;border-radius:999px;cursor:pointer}
+.hbtn.primary{background:var(--on-hero);color:var(--hero);border-color:var(--on-hero)}
+.hbtn:disabled{opacity:.5;cursor:default}
+.opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.opt{border:1.5px solid rgba(255,255,255,.26);background:rgba(255,255,255,.06);color:var(--on-hero);font:700 14px var(--font-ui);padding:12px 6px;border-radius:14px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+.opt small{font-size:11px;font-weight:500;color:var(--on-hero-muted)}
+.opt[aria-pressed="true"]{background:var(--on-hero);color:var(--hero);border-color:var(--on-hero)}
+.opt[aria-pressed="true"] small{color:var(--hero);opacity:.72}
+.opt:disabled{opacity:.5;cursor:default}
+.today-note{font-size:12px;color:var(--on-hero-muted);min-height:1em}
+.cal button.d{border:0;cursor:pointer;font:inherit;font-family:var(--font-num);font-size:13px}
+.cal button.d:disabled{cursor:default}
+.cal .d.sel{box-shadow:0 0 0 2px var(--pink)}
+.cal .d.unrec{background:transparent;border:1px dashed var(--accent)}
+.daypanel{margin:0 16px 14px;padding:14px;border-radius:14px;background:var(--soft);display:flex;flex-direction:column;gap:10px}
+.daypanel h4{margin:0;font-size:15px;font-weight:800}
+.dopts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.dopt{border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font:700 14px var(--font-ui);padding:10px;border-radius:12px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:1px}
+.dopt small{font-weight:500;font-size:11px;color:var(--muted)}
+.dopt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.logwrap{overflow-x:auto}
+.calhint{margin:0;padding:0 16px 14px}
+.gate{position:fixed;inset:0;z-index:60;overflow:auto;display:flex;align-items:center;justify-content:center;padding:24px 16px;background:var(--hero)}
+[hidden]{display:none!important}
+.gate-card{width:min(380px,100%);background:var(--surface);color:var(--ink);border-radius:20px;padding:26px 22px;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+.gate-kicker{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink);font-weight:800}
+.gate-card h1{margin:0;font-size:24px}
+.gate-card p{margin:0;color:var(--muted);font-size:14px}
+.gate-card input{font:600 22px var(--font-num);letter-spacing:.3em;text-align:center;padding:12px;border-radius:12px;border:1.5px solid var(--line);background:var(--soft);color:var(--ink)}
+.who{display:flex;justify-content:center;gap:10px;align-items:center;font-size:13px;color:var(--muted)}
+.who button{background:none;border:0;color:var(--accent-ink);font:700 13px var(--font-ui);cursor:pointer;text-decoration:underline}
+.sync{font-size:12px;color:var(--muted);text-align:center}
+.undo{background:transparent;border:1px solid rgba(255,255,255,.4);color:var(--on-hero);font:700 12px var(--font-ui);padding:4px 10px;border-radius:999px;cursor:pointer;margin-left:6px}
+.btn.cancel{color:var(--bad);border-color:var(--bad)}
+.snack{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:50;background:var(--hero);color:var(--on-hero);border-radius:14px;padding:10px 10px 10px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 10px 30px rgba(0,0,0,.25);font-size:14px;width:min(380px,calc(100vw - 32px));justify-content:space-between}
+.snack[hidden]{display:none}
+.daypanel[hidden]{display:none}
+.snack button{background:var(--on-hero);color:var(--hero);border:0;border-radius:10px;padding:8px 12px;font:700 13px var(--font-ui);cursor:pointer;white-space:nowrap}
+.log{width:100%;border-collapse:collapse;font-size:13px}
+.log th,.log td{padding:8px 8px;vertical-align:top;border-top:1px solid var(--line);text-align:left;white-space:nowrap}
+.log thead th{border-top:0;color:var(--muted);font-size:11px;letter-spacing:.06em;text-transform:uppercase;background:var(--soft)}
+.log td.ket{white-space:normal;width:100%}
+.log td.ket small{display:block;font-size:11px;margin-top:2px}
+.earn{display:flex;flex-direction:column;gap:4px}
+.earn .lbl{font-size:13px;color:var(--on-hero-muted);font-weight:600}
+.earn .amt{font-size:32px;font-weight:600;line-height:1.1;white-space:nowrap}
+.earn .of{font-size:12px;color:var(--on-hero-muted)}
+.track{height:8px;border-radius:4px;background:rgba(255,255,255,.14);overflow:hidden;margin-top:6px;display:flex}
+.track .adv{background:var(--pink)} .track .rest{background:#B79BDB}
+.earn-foot{display:flex;justify-content:space-between;gap:6px 12px;flex-wrap:wrap;font-size:12px;color:var(--on-hero-muted)}
+.earn-foot b{color:var(--on-hero);font-weight:600}
+
+/* SUMMARY */
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:520px){.stats{grid-template-columns:1fr 1fr}.stats .stat:first-child{grid-column:1/-1}}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat .k{font-size:12px;color:var(--muted);font-weight:600}
+.stat .v{font-size:19px;font-weight:600;line-height:1.2;overflow-wrap:anywhere}
+.stat .s{font-size:11px;color:var(--muted)}
+.stat.due{border-color:transparent;background:var(--pink-soft)} .stat.due .v{color:var(--pink-ink)}
+
+section h2{font-size:17px;margin:0;font-weight:800;letter-spacing:-.01em}
+.sec-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.sec-head select{width:auto}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+
+/* TABS & FORMS */
+.tabs{display:flex;gap:4px;background:var(--soft);border-radius:12px;padding:4px}
+.tabs button{flex:1;border:0;background:transparent;color:var(--muted);font:700 14px var(--font-ui);padding:10px 6px;border-radius:9px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--accent-ink);box-shadow:0 1px 3px rgba(63,45,92,.15)}
+form.fcard{padding:16px;display:flex;flex-direction:column;gap:12px;margin-top:10px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:420px){.row2{grid-template-columns:1fr}}
+label{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:600;color:var(--muted);min-width:0}
+fieldset{border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:6px;min-width:0}
+legend{font-size:13px;font-weight:600;color:var(--muted);padding:0;margin-bottom:4px}
+.choice{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.choice label{flex-direction:row;align-items:flex-start;gap:8px;border:1.5px solid var(--line);border-radius:12px;padding:11px 12px;background:var(--bg);color:var(--ink);font-weight:700;cursor:pointer}
+.choice label small{display:block;font-weight:500;color:var(--muted);font-size:12px}
+.choice input{width:auto;margin-top:3px;accent-color:var(--accent)}
+.choice label:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+input,select,textarea{font:500 15px var(--font-ui);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;min-width:0}
+input.money{font-family:var(--font-num);font-size:17px}
+textarea{resize:vertical;min-height:44px}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn{border:0;border-radius:11px;padding:12px 16px;font:700 15px var(--font-ui);cursor:pointer;background:var(--hero);color:var(--on-hero)}
+.btn:disabled{opacity:.55;cursor:default}
+.btn.ghost{background:transparent;color:var(--accent-ink);border:1px solid var(--line)}
+.btn.small{padding:7px 12px;font-size:13px;border-radius:9px}
+.btn.pink{background:var(--pink-soft);color:var(--pink-ink)}
+.hint{font-size:12px;color:var(--muted);font-weight:500}
+.formmsg{font-size:13px;min-height:1em}
+.formmsg.err{color:var(--bad)} .formmsg.okc{color:var(--ok)}
+
+/* CALENDAR & PAYROLL */
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;padding:16px 16px 8px}
+.cal .dow{font-size:11px;font-weight:700;color:var(--muted);text-align:center;padding-bottom:2px}
+.cal .d{aspect-ratio:1/1;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:13px;font-family:var(--font-num);background:var(--soft);color:var(--ink)}
+.cal .d.pre,.cal .d.future{background:transparent;color:var(--muted)}
+.cal .d.pre{opacity:.4}
+.cal .d.future{border:1px dashed var(--line)}
+.cal .d.blank{background:transparent}
+.cal .d.kerja{background:var(--accent-soft)}
+.cal .d.hadir{background:var(--accent);color:var(--surface);font-weight:600}
+.cal .d.libur{background:var(--pink-soft);color:var(--pink-ink);font-weight:600}
+.cal .d.izin{background:var(--warn-soft);color:var(--warn);font-weight:600}
+.cal .d.today{outline:2px solid var(--hero);outline-offset:1px}
+:root[data-theme="dark"] .cal .d.today{outline-color:var(--accent)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .cal .d.today{outline-color:var(--accent)}}
+.cal .d i{font-style:normal;font-size:8.5px;font-family:var(--font-ui);font-weight:700;line-height:1;text-transform:uppercase;letter-spacing:.04em}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);padding:0 16px 14px}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;background:var(--c)}
+.block{border-top:1px solid var(--line);padding:16px;display:flex;flex-direction:column;gap:12px}
+.block h3{margin:0;font-size:14px;font-weight:800}
+.kv{display:grid;grid-template-columns:1fr auto;gap:7px 12px;font-size:14px;margin:0}
+.kv dt{color:var(--muted)} .kv dd{margin:0;text-align:right}
+.kv .tot{font-weight:800;color:var(--ink)}
+.kv .minus{color:var(--pink-ink)}
+.list{display:flex;flex-direction:column;gap:6px}
+.lrow{display:flex;justify-content:space-between;gap:8px 10px;align-items:center;font-size:13px;flex-wrap:wrap;padding:9px 11px;border-radius:10px;background:var(--soft)}
+.lrow .r{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.lrow input.money{width:140px;font-size:14px;padding:7px 9px}
+.paid-box{border-radius:12px;background:var(--ok-soft);padding:12px 14px;font-size:13px;display:flex;flex-direction:column;gap:4px}
+.paid-box strong{color:var(--ok)}
+form.inline{display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:12px;background:var(--soft)}
+
+/* MONTH SPEND */
+.mcard{padding:16px;display:flex;flex-direction:column;gap:14px}
+.mtotal{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.mtotal .v{font-size:26px;font-weight:600}
+.split{display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--soft)}
+.split .y{background:var(--accent)} .split .z{background:var(--pink)}
+.cats{display:flex;flex-direction:column;gap:9px;border-top:1px dashed var(--line);padding-top:12px}
+.catrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;font-size:14px}
+.catrow .bar{grid-column:1/-1;height:5px;border-radius:3px;background:var(--soft);overflow:hidden}
+.catrow .bar span{display:block;height:100%;background:var(--accent);border-radius:3px}
+
+/* TABLE & LEDGER */
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:10px 14px;text-align:right;border-top:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{border-top:0;color:var(--muted);font-weight:700;font-size:11px;letter-spacing:.06em;text-transform:uppercase;background:var(--soft)}
+td.due{color:var(--pink-ink);font-weight:600}
+.filters{display:flex;gap:8px;flex-wrap:wrap}
+.filters select{width:auto;font-size:14px;padding:8px 10px}
+.entry{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:13px 16px;border-top:1px solid var(--line)}
+.entry:first-child{border-top:0}
+.entry .what{font-weight:700;word-break:break-word}
+.entry .meta{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center}
+.entry .amt{text-align:right;font-weight:600;white-space:nowrap}
+.entry .tools{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--soft);color:var(--muted)}
+.chip.y{background:var(--accent-soft);color:var(--accent-ink)}
+.chip.z{background:var(--pink-soft);color:var(--pink-ink)}
+.chip.due{background:var(--bad-soft);color:var(--bad)}
+.chip.paid{background:var(--ok-soft);color:var(--ok)}
+.chip.wait{background:var(--warn-soft);color:var(--warn)}
+.thumb{width:46px;height:46px;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:var(--soft)}
+.link{color:var(--accent-ink);font-weight:700;font-size:13px;text-decoration:none}
+.empty{padding:24px 16px;text-align:center;color:var(--muted);font-size:14px}
+details.settings{padding:14px 16px}
+details.settings summary{cursor:pointer;font-weight:700}
+details.settings form{margin-top:12px;display:flex;flex-direction:column;gap:12px}
+.footer-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+footer{font-size:12px;color:var(--muted);text-align:center}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<div class="gate" id="gate">
+  <form class="gate-card" id="gateForm" novalidate>
+    <div class="gate-kicker">Kas Perawatan Emak</div>
+    <h1>Masukkan PIN</h1>
+    <p>PIN diberikan Mas Adib. Cukup sekali di HP ini, berikutnya langsung terbuka.</p>
+    <input id="gatePin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="12" placeholder="••••••" aria-label="PIN">
+    <button class="btn" type="submit" id="gateBtn">Masuk</button>
+    <div class="formmsg" id="gateMsg" role="status"></div>
+  </form>
+</div>
+<div class="wrap" id="app" hidden>
+  <section class="hero" aria-labelledby="heroDate">
+    <div>
+      <div class="eyebrow">Kas Perawatan Emak · Rumah Ngantang</div>
+      <div class="date-day" id="heroDay">Hari ini</div>
+      <div class="date-big" id="heroDate">–</div>
+      <div class="tz">Waktu Indonesia Barat</div>
+    </div>
+
+    <div class="opts" role="group" aria-label="Absen Zelda hari ini">
+      <button type="button" class="opt" id="optKerja" aria-pressed="false">Masuk kerja<small>dibayar</small></button>
+      <button type="button" class="opt" id="optLibur" aria-pressed="false">Libur<small>jatah mingguan</small></button>
+      <button type="button" class="opt" id="optIzin" aria-pressed="false">Izin<small>tidak dibayar</small></button>
+    </div>
+    <div class="today-note" id="attMsg" aria-live="polite"></div>
+
+    <div class="earn">
+      <div class="lbl" id="earnLbl">Gaji terkumpul bulan ini</div>
+      <div class="amt num" id="earnAmt">–</div>
+      <div class="of" id="earnOf"></div>
+      <div class="track" aria-hidden="true"><span class="adv" id="barAdv" style="width:0"></span><span class="rest" id="barRest" style="width:0"></span></div>
+      <div class="earn-foot"><span id="earnDays"></span><span id="earnAdv"></span></div>
+    </div>
+  </section>
+
+  <div id="accessNote" class="notice" hidden></div>
+  <div class="snack" id="snack" role="status" hidden><span id="snackTxt"></span><button type="button" id="snackUndo">Urungkan</button></div>
+
+  <section class="stats" aria-label="Ringkasan">
+    <div class="stat due"><span class="k">Perlu diganti ke Zelda</span><span class="v num" id="sDue">Rp 0</span><span class="s" id="sDueSub">Talangan belanja</span></div>
+    <div class="stat"><span class="k" id="sMonthK">Belanja bulan ini</span><span class="v num" id="sMonth">Rp 0</span><span class="s" id="sMonthSub">Yangti + Zelda</span></div>
+    <div class="stat"><span class="k">Gaji belum dibayar</span><span class="v num" id="sGajiDue">Rp 0</span><span class="s" id="sGajiSub">Bulan yang sudah lewat</span></div>
+  </section>
+
+  <section aria-labelledby="absTitle">
+    <div class="sec-head">
+      <h2 id="absTitle">Absensi Zelda</h2>
+      <select id="absMonth" aria-label="Pilih bulan"></select>
+    </div>
+    <div class="card">
+      <div class="cal" id="cal"></div>
+      <div class="legend"><span style="--c:var(--accent)">Masuk kerja</span><span style="--c:var(--pink-soft)">Libur dibayar</span><span style="--c:var(--warn-soft)">Izin / sakit (tidak dibayar)</span><span style="--c:transparent;outline:1px dashed var(--accent)">Belum diisi</span></div>
+      <p class="hint calhint">Ketuk tanggal untuk mengisi, mengganti, atau membatalkan absen.</p>
+      <div class="daypanel" id="dayPanel" hidden></div>
+    </div>
+  </section>
+
+  <section aria-label="Catat" id="formSection">
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" id="tabOut" aria-selected="true" aria-controls="formOut">Belanja</button>
+      <button type="button" role="tab" id="tabAdv" aria-selected="false" aria-controls="formAdv">Advance gaji</button>
+    </div>
+
+    <form class="card fcard" id="formOut" novalidate>
+      <fieldset>
+        <legend>Siapa yang membayar?</legend>
+        <div class="choice">
+          <label for="payY"><input type="radio" name="pay" id="payY" value="yangti" checked><span>Yangti<small>Pakai jatah uang dari Mama</small></span></label>
+          <label for="payZ"><input type="radio" name="pay" id="payZ" value="zelda"><span>Zelda<small>Uang Zelda, nanti diganti</small></span></label>
+        </div>
+      </fieldset>
+      <div class="row2">
+        <label for="oDate">Tanggal<input type="date" id="oDate" required></label>
+        <label for="oAmt">Jumlah (Rp)<input class="money" id="oAmt" inputmode="numeric" autocomplete="off" placeholder="0" required></label>
+      </div>
+      <label for="oWhat">Barang / keperluan<input id="oWhat" maxlength="120" placeholder="mis. Pampers dewasa M isi 10" required></label>
+      <label for="oCat">Kategori<select id="oCat"></select></label>
+      <label for="oPhoto">Foto nota (kalau ada)<input type="file" id="oPhoto" accept="image/*,application/pdf"><span class="hint" id="photoHint">Foto struk atau nota. Boleh dikosongkan kalau tidak ada nota.</span></label>
+      <label for="oNote">Catatan (opsional)<textarea id="oNote" maxlength="300" rows="2" placeholder="mis. beli di apotek Ngantang"></textarea></label>
+      <button class="btn" type="submit" id="oSubmit">Simpan belanja</button>
+      <div class="formmsg" id="oMsg" role="status"></div>
+    </form>
+
+
+    <form class="card fcard" id="formAdv" novalidate hidden>
+      <dl class="kv" id="advAvail"></dl>
+      <div class="row2">
+        <label for="vAmt">Jumlah (Rp)<input class="money" id="vAmt" inputmode="numeric" autocomplete="off" placeholder="0"></label>
+        <label for="vWhy">Keperluan<input id="vWhy" maxlength="160" placeholder="mis. bayar sekolah"></label>
+      </div>
+      <span class="hint" id="advHint">Advance memotong gaji bulan ini. Pengajuan baru berlaku setelah disetujui Mas Adib.</span>
+      <button class="btn" type="submit" id="vSubmit">Ajukan advance</button>
+      <div class="formmsg" id="vMsg" role="status"></div>
+    </form>
+  </section>
+
+  <section aria-labelledby="payTitle">
+    <div class="sec-head"><h2 id="payTitle">Log, advance &amp; gaji</h2><span class="hint" id="payMonthLbl"></span></div>
+    <div class="card">
+      <div class="block" id="logBox"></div>
+      <div class="block" id="advBox"></div>
+      <div class="block" id="payBox"></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="monthTitle">
+    <div class="sec-head">
+      <h2 id="monthTitle">Pengeluaran Emak</h2>
+      <select id="monthPick" aria-label="Pilih bulan pengeluaran"></select>
+    </div>
+    <div class="card mcard">
+      <div class="mtotal"><span class="hint" style="font-size:13px">Total bulan ini</span><span class="v num" id="mT">Rp 0</span></div>
+      <div class="split" aria-hidden="true"><div class="y" id="splitY" style="width:0"></div><div class="z" id="splitZ" style="width:0"></div></div>
+      <dl class="kv">
+        <dt><span class="chip y">Yangti</span> jatah dari Mama</dt><dd class="num" id="mY">Rp 0</dd>
+        <dt><span class="chip z">Zelda</span> ditalangi</dt><dd class="num" id="mZ">Rp 0</dd>
+        <dt>Talangan Zelda belum diganti</dt><dd class="num" id="mZdue">Rp 0</dd>
+      </dl>
+      <div id="mCats"></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="recapTitle">
+    <div class="sec-head"><h2 id="recapTitle">Rekap per bulan</h2></div>
+    <div class="card tablewrap"><table>
+      <thead><tr><th>Bulan</th><th>Yangti</th><th>Zelda</th><th>Total belanja</th><th>Belum diganti</th><th>Gaji bersih</th></tr></thead>
+      <tbody id="recapBody"><tr><td colspan="6" style="text-align:center;color:var(--muted)">Belum ada catatan.</td></tr></tbody>
+    </table></div>
+  </section>
+
+  <section aria-labelledby="ledgerTitle">
+    <div class="sec-head">
+      <h2 id="ledgerTitle">Riwayat belanja</h2>
+      <div class="filters">
+        <select id="fMonth" aria-label="Filter bulan"><option value="all">Semua bulan</option></select>
+        <select id="fPay" aria-label="Filter pembayar">
+          <option value="all">Semua</option><option value="yangti">Dibayar Yangti</option><option value="zelda">Ditalangi Zelda</option><option value="due">Belum diganti</option>
+        </select>
+      </div>
+    </div>
+    <div class="card" id="ledger"><div class="empty">Memuat catatan…</div></div>
+  </section>
+
+  <div class="footer-actions">
+    <button class="btn ghost" type="button" id="copyBtn">Salin rekap untuk WhatsApp</button>
+    <span class="formmsg" id="copyMsg" role="status"></span>
+  </div>
+  <textarea id="copyFallback" rows="10" hidden readonly></textarea>
+
+  <details class="card settings" id="settingsBox" hidden>
+    <summary>Pengaturan gaji (hanya Mas Adib)</summary>
+    <form id="formCfg" novalidate>
+      <div class="row2">
+        <label for="cGaji">Gaji bulanan Zelda (Rp)<input class="money" id="cGaji" inputmode="numeric" placeholder="mis. 2.500.000"></label>
+        <label for="cMulai">Tanggal mulai kerja<input type="date" id="cMulai"></label>
+      </div>
+      <span class="hint">Gaji dihitung per hari kalender: gaji bulanan ÷ jumlah hari di bulan itu × hari yang dibayar. Libur mingguan termasuk hari yang dibayar.</span>
+      <button class="btn" type="submit" id="cSubmit">Simpan pengaturan</button>
+      <div class="formmsg" id="cMsg" role="status"></div>
+    </form>
+  </details>
+
+  <div class="who" id="who"></div>
+  <div class="sync" id="syncNote"></div>
+  <footer>Gaji dibayar tiap tanggal 1 bulan berikutnya, dikurangi advance yang sudah diambil · Talangan belanja diganti bersamaan dengan gaji</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const CATS=[["pampers","Pampers & perlak"],["obat","Obat & salep"],["kulit","Kebersihan & perawatan kulit"],["makan","Makan & minum Emak"],["alat","Alat bantu perawatan"],["dokter","Periksa dokter / puskesmas"],["transport","Transport"],["lain","Lain-lain"]];
+  const CAT_LABEL=Object.fromEntries(CATS);
+  const BLN=["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+  const BLN_FULL=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+  const HARI_FULL=["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+  const HARI=["Min","Sen","Sel","Rab","Kam","Jum","Sab"];
+  const $=id=>document.getElementById(id);
+  const fmtNum=new Intl.NumberFormat("id-ID");
+  const rp=n=>(n<0?"−Rp ":"Rp ")+fmtNum.format(Math.abs(Math.round(n||0)));
+  const pad=n=>String(n).padStart(2,"0");
+  const iso=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+  const todayISO=()=>{try{return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Jakarta",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());}catch(_){return iso(new Date());}};
+  const nowHM=()=>{try{return new Intl.DateTimeFormat("id-ID",{timeZone:"Asia/Jakarta",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date()).replace(".",":");}catch(_){const d=new Date();return pad(d.getHours())+":"+pad(d.getMinutes());}};
+  const parseISO=s=>{const[y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d);};
+  const fmtDate=s=>{if(!s||!/^\d{4}-\d{2}-\d{2}$/.test(s))return s||"";const[y,m,d]=s.split("-");return d+" "+BLN[+m-1]+" "+y;};
+  const monthKey=s=>(s||"").slice(0,7);
+  const monthLabel=k=>{const[y,m]=k.split("-");return BLN_FULL[+m-1]+" "+y;};
+  const nextMonthFirst=k=>{const[y,m]=k.split("-").map(Number);return m===12?(y+1)+"-01-01":y+"-"+pad(m+1)+"-01";};
+  const daysIn=k=>{const[y,m]=k.split("-").map(Number);return new Date(y,m,0).getDate();};
+  const digits=s=>parseInt(String(s||"").replace(/\D/g,""),10)||0;
+  const weekKey=s=>{const d=parseISO(s);const dow=(d.getDay()+6)%7;d.setDate(d.getDate()-dow);return iso(d);};
+  const el=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;};
+  const moneyInput=(id,val)=>{const i=el("input","money");i.id=id;i.inputMode="numeric";i.autocomplete="off";i.value=val?fmtNum.format(val):"";i.addEventListener("input",()=>{const n=digits(i.value);i.value=n?fmtNum.format(n):"";});return i;};
+
+  let db=null,user=null,assets=null,myId=null,isOwner=false,canWrite=true;
+  let belanja=[],absen={},gajiDocs={},kasbon=[],pengajuan=[],cfg={gaji:0,mulai:""},profiles={};
+  let payFormOpen=null;
+
+  // static
+  $("oCat").innerHTML=CATS.map(([k,v])=>'<option value="'+k+'">'+v+'</option>').join("");
+  $("oDate").value=todayISO();
+  document.querySelectorAll("input.money").forEach(inp=>inp.addEventListener("input",()=>{const n=digits(inp.value);inp.value=n?fmtNum.format(n):"";}));
+  const TABS=[["tabOut","formOut"],["tabAdv","formAdv"]];
+  TABS.forEach(([t,f])=>$(t).addEventListener("click",()=>TABS.forEach(([t2,f2])=>{const on=t2===t;$(t2).setAttribute("aria-selected",String(on));$(f2).hidden=!on;})));
+  ["monthPick","absMonth","fMonth","fPay"].forEach(id=>$(id).addEventListener("change",renderAll));
+  const setMsg=(id,t,k)=>{const e=$(id);e.textContent=t||"";e.className="formmsg"+(k?" "+k:"");};
+  const showAccess=(t,k)=>{const n=$("accessNote");n.textContent=t;n.className="notice"+(k?" "+k:"");n.hidden=!t;};
+  const setWritable=on=>{canWrite=on;["formOut","formAdv"].forEach(f=>$(f).querySelectorAll("input,select,textarea,button").forEach(x=>x.disabled=!on));OPTS.forEach(([id])=>$(id).disabled=!on);};
+
+  // ---------- attendance & salary ----------
+  function dayStatus(key){
+    const a=absen[key];if(!a)return null;
+    if(a.jenis==="hadir")return "hadir";
+    if(a.jenis==="izin"||a.jenis==="sakit")return "izin";
+    const wk=weekKey(key);let n=0;
+    for(const k of Object.keys(absen).sort()){if(absen[k].jenis==="libur"&&weekKey(k)===wk&&(!cfg.mulai||k>=cfg.mulai)){n++;if(k===key)break;}}
+    return n>1?"izin":"libur";
+  }
+  function salary(mk,upto){
+    const days=daysIn(mk);const last=mk+"-"+pad(days);const first=mk+"-01";
+    const out={mk,days,period:0,elapsed:0,paidLibur:0,unpaid:0,hadir:0,paidDays:0,amount:0,start:null,end:last,ok:!!(cfg.gaji&&cfg.mulai)};
+    if(!out.ok||cfg.mulai>last)return out;
+    const start=cfg.mulai>first?cfg.mulai:first;out.start=start;
+    const end=upto&&upto<last?upto:last;if(end<start)return out;
+    const s=parseISO(start).getDate(),e=parseISO(end).getDate();
+    out.period=days-s+1;out.elapsed=e-s+1;
+    for(let d=s;d<=e;d++){const st=dayStatus(mk+"-"+pad(d));if(st==="izin")out.unpaid++;else if(st==="libur")out.paidLibur++;else if(st==="hadir")out.hadir++;}
+    out.paidDays=out.elapsed-out.unpaid;out.amount=Math.round(cfg.gaji/days*out.paidDays);
+    return out;
+  }
+  const advOf=mk=>kasbon.filter(k=>k.bulan===mk).reduce((a,k)=>a+(k.jumlah||0),0);
+  const pendingOf=mk=>pengajuan.filter(p=>p.status==="diajukan"&&monthKey(p.tanggal)===mk).reduce((a,p)=>a+(p.jumlah||0),0);
+  function payroll(mk){const s=salary(mk);const adv=advOf(mk);return {s,gross:s.amount,adv,net:Math.max(0,s.amount-adv),g:gajiDocs[mk]};}
+  function unpaidPast(){
+    if(!cfg.gaji||!cfg.mulai)return {sum:0,months:[]};
+    const cur=monthKey(todayISO());let mk=monthKey(cfg.mulai);let sum=0;const months=[];
+    while(mk<cur){const p=payroll(mk);if(!(p.g&&p.g.dibayar)&&p.net){sum+=p.net;months.push(mk);}mk=monthKey(nextMonthFirst(mk));}
+    return {sum,months};
+  }
+
+  // ---------- hero ----------
+  const OPTS=[["optKerja","hadir"],["optLibur","libur"],["optIzin","izin"]];
+  const JENIS=[["hadir","Masuk kerja","dibayar"],["libur","Libur mingguan","dibayar, 1 hari/minggu"],["izin","Izin","tidak dibayar"],["sakit","Sakit","tidak dibayar kecuali disepakati"]];
+  const JLABEL=Object.fromEntries(JENIS.map(j=>[j[0],j[1]]));
+  function statusText(key){
+    const a=absen[key];const st=dayStatus(key);if(!a)return "";
+    if(st==="hadir")return "Masuk kerja"+(a.jam?" · pukul "+a.jam+" WIB":"");
+    if(st==="libur")return "Libur mingguan (dibayar)";
+    if(a.jenis==="libur")return "Libur ke-2 minggu ini (tidak dibayar)";
+    return (JLABEL[a.jenis]||"Izin")+" (tidak dibayar)";
+  }
+  function renderHero(){
+    const t=todayISO();const d=parseISO(t);
+    $("heroDay").textContent=HARI_FULL[d.getDay()];
+    $("heroDate").textContent=d.getDate()+" "+BLN_FULL[d.getMonth()]+" "+d.getFullYear();
+    const a=absen[t];const before=cfg.mulai&&t<cfg.mulai;
+    OPTS.forEach(([id,j])=>{const b=$(id);b.setAttribute("aria-pressed",String(!!a&&(a.jenis===j||(j==="izin"&&a.jenis==="sakit"))));b.disabled=!canWrite||!!before;});
+    const note=$("attMsg");
+    if(before) note.textContent="Zelda mulai bekerja "+fmtDate(cfg.mulai)+".";
+    else if(a){note.textContent="Tercatat: "+statusText(t)+(a.catatan?" · "+a.catatan:"")+". ";
+      if(canWrite){const u=el("button","undo","Batalkan");u.type="button";u.addEventListener("click",async()=>{u.disabled=true;try{await setDayUndoable(t,null);}catch(_){u.disabled=false;}});note.appendChild(u);}}
+    else note.textContent="Belum diisi. Ketuk salah satu pilihan untuk absen hari ini.";
+    const mk=monthKey(t);
+    $("earnLbl").textContent="Gaji Zelda terkumpul · "+monthLabel(mk);
+    if(!cfg.gaji||!cfg.mulai){$("earnAmt").textContent="–";$("earnOf").textContent="";$("barAdv").style.width="0";$("barRest").style.width="0";$("earnDays").textContent="Atur gaji & tanggal mulai di Pengaturan";$("earnAdv").textContent="";return;}
+    const now=salary(mk,t),full=salary(mk),adv=advOf(mk);
+    $("earnAmt").textContent=rp(now.amount);
+    $("earnOf").textContent="dari ± "+rp(full.amount)+" sampai "+fmtDate(full.end)+" · dibayar "+fmtDate(nextMonthFirst(mk));
+    const base=full.amount||1;
+    $("barAdv").style.width=Math.min(100,adv/base*100)+"%";
+    $("barRest").style.width=Math.max(0,Math.min(100,(now.amount-adv)/base*100))+"%";
+    $("earnDays").textContent=now.elapsed?(now.paidDays+" hari dibayar sejak "+fmtDate(now.start)+(now.unpaid?" · "+now.unpaid+" tidak dibayar":"")):"Belum ada hari kerja bulan ini";
+    const eb=$("earnAdv");eb.textContent="";
+    if(adv){eb.append("Advance ");const b=el("b",null,rp(adv));eb.append(b," · sisa ",el("b",null,rp(now.amount-adv)));}
+    else eb.textContent="Belum ada advance";
+  }
+  let snackT=null,undoFn=null;
+  function snack(txt,fn){$("snackTxt").textContent=txt;undoFn=fn;$("snackUndo").hidden=!fn;$("snack").hidden=false;clearTimeout(snackT);snackT=setTimeout(()=>{$("snack").hidden=true;undoFn=null;},7000);}
+  $("snackUndo").addEventListener("click",async()=>{const f=undoFn;$("snack").hidden=true;undoFn=null;if(f){try{await f();}catch(_){snack("Gagal mengurungkan. Coba lagi.");}}});
+  async function setDayUndoable(key,jenis,catatan){
+    const prev=absen[key]?{...absen[key]}:null;
+    await setDay(key,jenis,catatan);
+    const lbl=fmtDate(key)+": ";
+    const restore=async()=>{if(prev)await db.collection("absen").doc(key).set(prev);else await db.collection("absen").doc(key).delete();};
+    snack(jenis?lbl+(JLABEL[jenis]||jenis)+" tersimpan":lbl+"isian dibatalkan",restore);
+  }
+  async function setDay(key,jenis,catatan){
+    if(!db||!canWrite)throw {code:"no_write"};
+    const prev=absen[key];
+    if(!jenis){await db.collection("absen").doc(key).delete();return;}
+    await db.collection("absen").doc(key).set({tanggal:key,jenis,jam:(key===todayISO()&&jenis==="hadir")?((prev&&prev.jenis==="hadir"&&prev.jam)||nowHM()):(prev&&prev.jam&&jenis==="hadir"?prev.jam:""),catatan:catatan!=null?catatan:(prev&&prev.catatan)||"",oleh:myId,dibuat:new Date().toISOString()});
+  }
+  OPTS.forEach(([id,j])=>$(id).addEventListener("click",async()=>{
+    const t=todayISO();const a=absen[t];OPTS.forEach(([i])=>$(i).disabled=true);
+    try{await setDayUndoable(t,a&&(a.jenis===j||(j==="izin"&&a.jenis==="sakit"))?null:j);}
+    catch(err){$("attMsg").textContent=(err&&(err.code==="invalid_argument"||err.code==="no_write"))?"Akun ini belum punya izin menulis.":"Gagal menyimpan. Coba lagi.";}
+    finally{OPTS.forEach(([i])=>$(i).disabled=!canWrite);}
+  }));
+
+  // ---------- months ----------
+  function allMonths(){
+    const s=new Set([monthKey(todayISO())]);
+    belanja.forEach(e=>e.tanggal&&s.add(monthKey(e.tanggal)));
+    Object.keys(absen).forEach(k=>s.add(monthKey(k)));
+    kasbon.forEach(k=>k.bulan&&s.add(k.bulan));
+    if(cfg.mulai)s.add(monthKey(cfg.mulai));
+    return [...s].sort().reverse();
+  }
+  function fillSelect(id,months,withAll){
+    const sel=$(id),cur=sel.value;
+    sel.innerHTML=(withAll?'<option value="all">Semua bulan</option>':"")+months.map(m=>'<option value="'+m+'">'+monthLabel(m)+'</option>').join("");
+    if(cur&&[...sel.options].some(o=>o.value===cur))sel.value=cur;else sel.value=withAll?"all":months[0];
+  }
+
+  // ---------- summary ----------
+  function renderStats(){
+    const due=belanja.filter(e=>e.bayar==="zelda"&&!e.diganti);
+    $("sDue").textContent=rp(due.reduce((a,e)=>a+(e.jumlah||0),0));
+    $("sDueSub").textContent=due.length?(due.length+" catatan menunggu"):"Tidak ada yang menunggu";
+    const mk=monthKey(todayISO());let y=0,z=0;
+    belanja.forEach(e=>{if(monthKey(e.tanggal)===mk){if(e.bayar==="zelda")z+=e.jumlah||0;else y+=e.jumlah||0;}});
+    $("sMonthK").textContent="Belanja "+monthLabel(mk);$("sMonth").textContent=rp(y+z);
+    $("sMonthSub").textContent="Yangti "+rp(y)+" · Zelda "+rp(z);
+    const u=unpaidPast();$("sGajiDue").textContent=rp(u.sum);
+    $("sGajiSub").textContent=u.months.length?u.months.map(monthLabel).join(", "):"Tidak ada tunggakan";
+  }
+  function renderMonth(){
+    const mk=$("monthPick").value;let y=0,z=0,zd=0;const cats={};
+    for(const e of belanja){if(monthKey(e.tanggal)!==mk)continue;const j=e.jumlah||0;if(e.bayar==="zelda"){z+=j;if(!e.diganti)zd+=j;}else y+=j;cats[e.kategori]=(cats[e.kategori]||0)+j;}
+    const t=y+z;
+    $("mY").textContent=rp(y);$("mZ").textContent=rp(z);$("mT").textContent=rp(t);$("mZdue").textContent=rp(zd);
+    $("splitY").style.width=t?(y/t*100)+"%":"0";$("splitZ").style.width=t?(z/t*100)+"%":"0";
+    const box=$("mCats");box.innerHTML="";
+    const keys=Object.keys(cats).sort((a,b)=>cats[b]-cats[a]);
+    if(!keys.length){box.appendChild(el("div","hint","Belum ada belanja di bulan ini."));return;}
+    const wrap=el("div","cats");const max=cats[keys[0]]||1;
+    for(const k of keys){const r=el("div","catrow");const bar=el("div","bar");const f=el("span");f.style.width=Math.max(3,cats[k]/max*100)+"%";bar.appendChild(f);
+      r.append(el("span",null,CAT_LABEL[k]||"Lain-lain"),el("span","num",rp(cats[k])),bar);wrap.appendChild(r);}
+    box.appendChild(wrap);
+  }
+
+  // ---------- advance form (tab) ----------
+  function renderAdvForm(){
+    const t=todayISO(),mk=monthKey(t);const dl=$("advAvail");dl.innerHTML="";
+    const now=salary(mk,t);const adv=advOf(mk);const pend=pendingOf(mk);const avail=Math.max(0,now.amount-adv-pend);
+    [["Gaji terkumpul s/d hari ini",rp(now.amount)],["Advance sudah diambil",rp(adv)],["Pengajuan menunggu",rp(pend)],["Bisa diajukan sekarang",rp(avail)]].forEach(([a,b],i)=>{const dt=el("dt",i===3?"tot":null,a);const dd=el("dd","num"+(i===3?" tot":""),b);dl.append(dt,dd);});
+    $("vSubmit").textContent=isOwner?"Catat advance (langsung disetujui)":"Ajukan advance";
+    $("advHint").textContent=isOwner?"Dicatat sebagai advance yang sudah kamu berikan, dan langsung memotong gaji "+monthLabel(mk)+".":"Advance memotong gaji "+monthLabel(mk)+". Pengajuan baru berlaku setelah disetujui Mas Adib.";
+    $("formAdv").dataset.avail=avail;
+  }
+  $("formAdv").addEventListener("submit",async ev=>{
+    ev.preventDefault();if(!db){setMsg("vMsg","Belum tersambung ke penyimpanan.","err");return;}
+    const jumlah=digits($("vAmt").value),why=$("vWhy").value.trim();const t=todayISO();
+    if(!jumlah){setMsg("vMsg","Isi jumlahnya dulu.","err");return;}
+    const avail=+$("formAdv").dataset.avail||0;
+    if(!isOwner&&jumlah>avail){setMsg("vMsg","Melebihi yang bisa diajukan ("+rp(avail)+"). Bicarakan dulu dengan Mas Adib.","err");return;}
+    const btn=$("vSubmit");btn.disabled=true;
+    try{
+      if(isOwner) await db.collection("kasbon").add({tanggal:t,jumlah,bulan:monthKey(t),catatan:why,oleh:myId,dibuat:new Date().toISOString()});
+      else await db.collection("pengajuan").add({tanggal:t,jumlah,alasan:why,status:"diajukan",oleh:myId,dibuat:new Date().toISOString()});
+      $("vAmt").value="";$("vWhy").value="";
+      setMsg("vMsg",isOwner?"Advance "+rp(jumlah)+" tercatat.":"Pengajuan "+rp(jumlah)+" terkirim. Menunggu persetujuan Mas Adib.","okc");
+    }catch(err){setMsg("vMsg",(err&&err.code)==="invalid_argument"?"Akun ini belum punya izin.":"Gagal menyimpan. Coba lagi.","err");}
+    finally{btn.disabled=false;}
+  });
+
+  // ---------- calendar ----------
+  let selDay=null;
+  function renderCal(){
+    const mk=$("absMonth").value;const n=daysIn(mk);const today=todayISO();
+    if(selDay&&monthKey(selDay)!==mk)selDay=null;
+    const cal=$("cal");cal.innerHTML="";
+    ["Sen","Sel","Rab","Kam","Jum","Sab","Min"].forEach(h=>cal.appendChild(el("div","dow",h)));
+    const offset=(parseISO(mk+"-01").getDay()+6)%7;
+    for(let i=0;i<offset;i++)cal.appendChild(el("div","d blank"));
+    for(let d=1;d<=n;d++){
+      const key=mk+"-"+pad(d);const c=el("button","d");c.type="button";c.appendChild(document.createTextNode(String(d)));
+      const st=dayStatus(key);const pre=!cfg.mulai||key<cfg.mulai;
+      if(pre){c.classList.add("pre");c.disabled=true;}
+      else if(st){c.classList.add(st);c.appendChild(el("i",null,st==="hadir"?"kerja":st==="libur"?"libur":(absen[key].jenis==="sakit"?"sakit":"izin")));}
+      else if(key>today)c.classList.add("future");else c.classList.add("unrec");
+      if(key===today)c.classList.add("today");
+      if(key===selDay)c.classList.add("sel");
+      c.setAttribute("aria-label",fmtDate(key)+(st?" · "+statusText(key):pre?" · sebelum mulai kerja":" · belum diisi"));
+      if(!pre)c.addEventListener("click",()=>{selDay=selDay===key?null:key;renderCal();});
+      cal.appendChild(c);
+    }
+    $("payMonthLbl").textContent=monthLabel(mk);renderDayPanel();renderLog(mk);renderAdvBox(mk);renderPay(mk);
+  }
+  function renderDayPanel(){
+    const p=$("dayPanel");p.innerHTML="";if(!selDay){p.hidden=true;return;}p.hidden=false;
+    const key=selDay;const a=absen[key];
+    p.appendChild(el("h4",null,HARI_FULL[parseISO(key).getDay()]+", "+fmtDate(key)));
+    p.appendChild(el("div","hint",a?"Tercatat: "+statusText(key)+". Ketuk pilihan yang sama atau Batalkan isian untuk mengosongkan.":(key>todayISO()?"Belum ada rencana. Pilih untuk mencatat rencana libur atau izin.":"Belum diisi. Untuk sementara dihitung masuk kerja.")));
+    const grid=el("div","dopts");
+    const note=el("input");note.id="dayNote";note.maxLength=160;note.placeholder="Keterangan (opsional), mis. pulang ke Malang";note.value=a&&a.catatan||"";
+    JENIS.forEach(([j,lab,sub])=>{const b=el("button","dopt");b.type="button";b.setAttribute("aria-pressed",String(!!a&&a.jenis===j));
+      b.append(el("span",null,lab),el("small",null,sub));b.disabled=!canWrite;
+      b.addEventListener("click",async()=>{b.disabled=true;try{await setDayUndoable(key,a&&a.jenis===j?null:j,note.value.trim());}catch(err){msg.textContent="Gagal menyimpan. Coba lagi.";msg.className="formmsg err";b.disabled=false;}});
+      grid.appendChild(b);});
+    p.appendChild(grid);
+    const lab=el("label",null,"Keterangan");lab.appendChild(note);note.disabled=!canWrite;p.appendChild(lab);
+    const row=el("div");row.style.display="flex";row.style.gap="8px";row.style.flexWrap="wrap";
+    if(a&&canWrite){const sv=el("button","btn ghost small","Simpan keterangan");sv.type="button";sv.addEventListener("click",async()=>{sv.disabled=true;try{await setDay(key,a.jenis,note.value.trim());}catch(_){sv.disabled=false;}});row.appendChild(sv);
+      const del=el("button","btn ghost small cancel","Batalkan isian");del.type="button";del.addEventListener("click",async()=>{del.disabled=true;try{await setDayUndoable(key,null);}catch(_){del.disabled=false;}});row.appendChild(del);}
+    const cl=el("button","btn ghost small","Tutup");cl.type="button";cl.addEventListener("click",()=>{selDay=null;renderCal();});row.appendChild(cl);
+    p.appendChild(row);
+    const msg=el("div","formmsg");p.appendChild(msg);
+  }
+  function renderLog(mk){
+    const box=$("logBox");box.innerHTML="";box.appendChild(el("h3",null,"Log hari kerja · "+monthLabel(mk)));
+    if(!cfg.mulai){box.appendChild(el("div","hint","Log muncul setelah tanggal mulai kerja diisi."));return;}
+    const n=daysIn(mk);const today=todayISO();const first=cfg.mulai>mk+"-01"?parseISO(cfg.mulai).getDate():1;
+    const lastKey=mk+"-"+pad(n);const lastDay=(monthKey(today)===mk)?parseISO(today).getDate():(today<mk+"-01"?0:n);
+    const futureKeys=Object.keys(absen).filter(k=>monthKey(k)===mk&&k>today).sort();
+    if(cfg.mulai>lastKey){box.appendChild(el("div","hint","Zelda belum bekerja di bulan ini."));return;}
+    const wrap=el("div","logwrap");const t=el("table","log");
+    t.innerHTML="<thead><tr><th>Tanggal</th><th>Jenis &amp; keterangan</th><th>Dibayar</th></tr></thead>";
+    const tb=el("tbody");let unrec=0;
+    const addRow=(key)=>{const a=absen[key];const st=dayStatus(key);const tr=el("tr");
+      const jenis=a?(a.jenis==="hadir"?"Masuk kerja":a.jenis==="libur"?(st==="libur"?"Libur mingguan":"Libur ke-2"):JLABEL[a.jenis]||a.jenis):"Belum diisi";
+      if(!a)unrec++;
+      const paid=st==="izin"?"Tidak":"Ya";
+      const ket=(a&&a.jam?"pukul "+a.jam+(a.catatan?" · ":""):"")+(a&&a.catatan||"");
+      const dd=parseISO(key);tr.appendChild(el("td",null,HARI[dd.getDay()]+" "+dd.getDate()+" "+fmtDate(key).split(" ")[1]));
+      const tj=el("td","ket",jenis);if(!a)tj.style.color="var(--muted)";if(ket){const sm=el("small",null,ket);sm.style.color="var(--muted)";tj.appendChild(sm);}tr.appendChild(tj);
+      const tp=el("td",null,paid);if(paid==="Tidak")tp.style.color="var(--warn)";tr.appendChild(tp);
+      tr.style.cursor="pointer";tr.addEventListener("click",()=>{selDay=key;renderCal();$("cal").scrollIntoView({block:"nearest"});});
+      tb.appendChild(tr);};
+    for(let d=lastDay;d>=first;d--)addRow(mk+"-"+pad(d));
+    futureKeys.reverse().forEach(addRow);
+    t.appendChild(tb);wrap.appendChild(t);
+    if(!tb.children.length){box.appendChild(el("div","hint","Belum ada hari kerja di bulan ini."));return;}
+    if(unrec)box.appendChild(el("div","hint",unrec+" hari belum diisi. Selama belum diisi, hari itu tetap dihitung masuk kerja."));
+    box.appendChild(wrap);
+  }
+
+  // ---------- advance list ----------
+  function renderAdvBox(mk){
+    const box=$("advBox");box.innerHTML="";box.appendChild(el("h3",null,"Advance gaji · "+monthLabel(mk)));
+    const pend=pengajuan.filter(p=>p.status==="diajukan").sort((a,b)=>(a.dibuat||"").localeCompare(b.dibuat||""));
+    const ks=kasbon.filter(k=>k.bulan===mk).sort((a,b)=>(a.tanggal||"").localeCompare(b.tanggal||""));
+    const done=pengajuan.filter(p=>p.status==="ditolak"&&monthKey(p.tanggal)===mk);
+    if(!pend.length&&!ks.length&&!done.length){box.appendChild(el("div","hint","Belum ada advance di bulan ini. Pengajuan dibuat lewat tab Advance gaji di atas."));return;}
+    const list=el("div","list");
+    pend.forEach(p=>{
+      const row=el("div","lrow");const l=el("span",null,fmtDate(p.tanggal)+" · "+rp(p.jumlah)+(p.alasan?" · "+p.alasan:""));
+      const r=el("div","r");r.appendChild(el("span","chip wait","Menunggu"));
+      if(isOwner){
+        const amt=moneyInput("ap-"+p.id,p.jumlah);amt.setAttribute("aria-label","Jumlah disetujui");
+        const ok=el("button","btn small","Setujui");ok.type="button";
+        const no=el("button","btn ghost small","Tolak");no.type="button";
+        ok.addEventListener("click",async()=>{const j=digits(amt.value);if(!j)return;ok.disabled=no.disabled=true;
+          try{await db.collection("kasbon").add({tanggal:todayISO(),jumlah:j,bulan:monthKey(todayISO()),catatan:p.alasan||"",pengajuanId:p.id,oleh:myId,dibuat:new Date().toISOString()});
+            await db.collection("pengajuan").doc(p.id).update({status:"disetujui",disetujuiJumlah:j,keputusanTgl:todayISO()});}
+          catch(_){ok.disabled=no.disabled=false;ok.textContent="Gagal, coba lagi";}});
+        no.addEventListener("click",async()=>{ok.disabled=no.disabled=true;try{await db.collection("pengajuan").doc(p.id).update({status:"ditolak",keputusanTgl:todayISO()});}catch(_){ok.disabled=no.disabled=false;}});
+        r.append(amt,ok,no);
+      } else if(myId&&p.oleh===myId){
+        const del=el("button","btn ghost small","Batalkan");del.type="button";
+        del.addEventListener("click",async()=>{del.disabled=true;try{await db.collection("pengajuan").doc(p.id).delete();}catch(_){del.disabled=false;}});r.appendChild(del);
+      }
+      row.append(l,r);list.appendChild(row);
+    });
+    ks.forEach(k=>{
+      const row=el("div","lrow");row.appendChild(el("span",null,fmtDate(k.tanggal)+" · "+rp(k.jumlah)+(k.catatan?" · "+k.catatan:"")));
+      const r=el("div","r");r.appendChild(el("span","chip paid","Disetujui"));
+      if(isOwner){const del=el("button","btn ghost small","Hapus");del.type="button";let armed=false;
+        del.addEventListener("click",async()=>{if(!armed){armed=true;del.textContent="Ketuk lagi";setTimeout(()=>{armed=false;del.textContent="Hapus";},4000);return;}del.disabled=true;try{await db.collection("kasbon").doc(k.id).delete();}catch(_){del.disabled=false;}});r.appendChild(del);}
+      row.appendChild(r);list.appendChild(row);
+    });
+    done.forEach(p=>{const row=el("div","lrow");row.appendChild(el("span",null,fmtDate(p.tanggal)+" · "+rp(p.jumlah)+(p.alasan?" · "+p.alasan:"")));const r=el("div","r");r.appendChild(el("span","chip due","Ditolak"));row.appendChild(r);list.appendChild(row);});
+    box.appendChild(list);
+  }
+
+  // ---------- payroll ----------
+  function renderPay(mk){
+    const box=$("payBox");box.innerHTML="";box.appendChild(el("h3",null,"Gaji · "+monthLabel(mk)));
+    if(!cfg.gaji||!cfg.mulai){box.appendChild(el("div","hint","Hitungan gaji muncul setelah Mas Adib mengisi gaji bulanan dan tanggal mulai di Pengaturan."));return;}
+    const P=payroll(mk);const s=P.s;
+    if(!s.elapsed){box.appendChild(el("div","hint","Zelda belum bekerja di bulan ini."));return;}
+    const t=todayISO();const isCur=monthKey(t)===mk;const sofar=isCur?salary(mk,t):null;
+    const dl=el("dl","kv");
+    const rows=[["Periode",fmtDate(s.start)+" – "+fmtDate(s.end)],["Hari dalam periode",s.period+" hari"],["Masuk kerja tercatat",s.hadir+" hari"],...((s.elapsed-s.hadir-s.paidLibur-s.unpaid)>0?[["Belum diisi (dihitung masuk)",(s.elapsed-s.hadir-s.paidLibur-s.unpaid)+" hari"]]:[]),["Libur mingguan (dibayar)",s.paidLibur+" hari"],["Tidak dibayar",s.unpaid+" hari"],["Tarif per hari ("+rp(cfg.gaji)+" ÷ "+s.days+")",rp(cfg.gaji/s.days)]];
+    if(sofar)rows.push(["Terkumpul s/d "+fmtDate(t),rp(sofar.amount)]);
+    rows.push([(isCur?"Perkiraan gaji kotor":"Gaji kotor"),rp(P.gross)],["Dikurangi advance","− "+rp(P.adv).replace("Rp ","Rp ")],["Gaji bersih dibayar "+fmtDate(nextMonthFirst(mk)),rp(P.net)]);
+    rows.forEach(([a,b],i)=>{const last=i===rows.length-1;const dt=el("dt",last?"tot":null,a);const dd=el("dd","num"+(last?" tot":"")+(a==="Dikurangi advance"&&P.adv?" minus":""),b);dl.append(dt,dd);});
+    box.appendChild(dl);
+    // payment status
+    const g=P.g;
+    if(g&&g.dibayar){
+      const pb=el("div","paid-box");const h=el("div");h.appendChild(el("strong",null,"Sudah dibayar "+rp(g.jumlah)));h.append(" · "+fmtDate(g.tgl)+(g.metode?" · "+g.metode:""));pb.appendChild(h);
+      if(g.kotor!=null)pb.appendChild(el("div",null,"Gaji kotor "+rp(g.kotor)+" − advance "+rp(g.potongan||0)));
+      if(g.catatan)pb.appendChild(el("div",null,g.catatan));
+      if(Math.round(g.jumlah)!==Math.round(P.net))pb.appendChild(el("div",null,"Catatan: jumlah dibayar berbeda dari hitungan sekarang ("+rp(P.net)+")."));
+      box.appendChild(pb);
+      if(isOwner){const b=el("button","btn ghost small","Batalkan tanda dibayar");b.type="button";b.style.alignSelf="flex-start";
+        b.addEventListener("click",async()=>{b.disabled=true;try{await db.collection("gaji").doc(mk).delete();}catch(_){b.disabled=false;}});box.appendChild(b);}
+    } else if(isOwner){
+      if(payFormOpen!==mk){const b=el("button","btn small","Tandai gaji "+monthLabel(mk)+" sudah dibayar");b.type="button";b.style.alignSelf="flex-start";
+        b.addEventListener("click",()=>{payFormOpen=mk;renderPay(mk);});box.appendChild(b);}
+      else{
+        const f=el("form","inline");f.noValidate=true;
+        const r1=el("div","row2");
+        const l1=el("label",null,"Tanggal dibayar");const d1=el("input");d1.type="date";d1.id="pDate";d1.value=todayISO();l1.appendChild(d1);
+        const l2=el("label",null,"Jumlah dibayar (Rp)");const m2=moneyInput("pAmt",P.net);l2.appendChild(m2);r1.append(l1,l2);
+        const l3=el("label",null,"Cara bayar");const s3=el("select");s3.id="pMethod";["Transfer bank","Tunai","E-wallet"].forEach(o=>{const op=el("option",null,o);s3.appendChild(op);});l3.appendChild(s3);
+        const l4=el("label",null,"Catatan (opsional)");const i4=el("input");i4.id="pNote";i4.maxLength=160;i4.placeholder="mis. transfer BCA, termasuk ganti talangan";l4.appendChild(i4);
+        const hint=el("div","hint","Hitungan: gaji kotor "+rp(P.gross)+" − advance "+rp(P.adv)+" = "+rp(P.net)+". Ubah jumlahnya kalau yang dibayar berbeda.");
+        const row=el("div");row.style.display="flex";row.style.gap="8px";row.style.flexWrap="wrap";
+        const sb=el("button","btn small","Simpan pembayaran");sb.type="submit";const cb=el("button","btn ghost small","Batal");cb.type="button";
+        cb.addEventListener("click",()=>{payFormOpen=null;renderPay(mk);});row.append(sb,cb);
+        const msg=el("div","formmsg");
+        f.append(r1,l3,l4,hint,row,msg);
+        f.addEventListener("submit",async ev=>{ev.preventDefault();sb.disabled=true;
+          try{await db.collection("gaji").doc(mk).set({dibayar:true,tgl:d1.value||todayISO(),jumlah:digits(m2.value),kotor:P.gross,potongan:P.adv,metode:s3.value,catatan:i4.value.trim(),dicatat:new Date().toISOString()});payFormOpen=null;}
+          catch(_){sb.disabled=false;msg.textContent="Gagal menyimpan. Coba lagi.";msg.className="formmsg err";}});
+        box.appendChild(f);
+      }
+    } else {
+      box.appendChild(el("div","hint","Belum dibayar. Gaji dibayar "+fmtDate(nextMonthFirst(mk))+"."));
+    }
+  }
+
+  // ---------- recap & ledger ----------
+  function renderRecap(){
+    const by={};
+    for(const e of belanja){const mk=monthKey(e.tanggal);if(!mk)continue;const r=by[mk]||(by[mk]={y:0,z:0,d:0});const j=e.jumlah||0;if(e.bayar==="zelda"){r.z+=j;if(!e.diganti)r.d+=j;}else r.y+=j;}
+    if(cfg.gaji&&cfg.mulai)allMonths().forEach(mk=>{if(mk>=monthKey(cfg.mulai)&&!by[mk])by[mk]={y:0,z:0,d:0};});
+    const body=$("recapBody");body.innerHTML="";
+    const ks=Object.keys(by).sort().reverse();
+    if(!ks.length){body.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--muted)">Belum ada catatan.</td></tr>';return;}
+    for(const k of ks){const r=by[k];const tr=el("tr");const P=payroll(k);
+      const gaji=cfg.gaji&&P.gross?(P.g&&P.g.dibayar?rp(P.g.jumlah)+" ✓":rp(P.net)):"–";
+      [monthLabel(k),rp(r.y),rp(r.z),rp(r.y+r.z),rp(r.d),gaji].forEach((v,i)=>{const td=el("td",i?"num"+(i===4&&r.d?" due":""):null,v);if(i===3)td.style.fontWeight="700";tr.appendChild(td);});
+      body.appendChild(tr);}
+  }
+  let ledgerTok=0;
+  async function renderLedger(){
+    const tok=++ledgerTok;
+    const box=$("ledger");const fm=$("fMonth").value,fp=$("fPay").value;
+    const list=belanja.filter(e=>(fm==="all"||monthKey(e.tanggal)===fm)&&(fp==="all"||(fp==="due"?(e.bayar==="zelda"&&!e.diganti):e.bayar===fp)));
+    box.innerHTML="";
+    if(!list.length){box.appendChild(el("div","empty",belanja.length?"Tidak ada catatan untuk filter ini.":"Belum ada catatan belanja. Setiap belanja keperluan Emak dicatat lewat tab Belanja di atas, beserta siapa yang membayar dan foto notanya."));return;}
+    const ids=[...new Set(list.map(e=>e.oleh).filter(Boolean))];
+    if(user&&ids.length){try{profiles=await user.profiles(ids);}catch(_){}}
+    if(tok!==ledgerTok)return;box.innerHTML="";
+    for(const e of list){
+      const z=e.bayar==="zelda";const row=el("div","entry");const left=el("div");left.style.minWidth="0";
+      const meta=el("div","meta");meta.append(el("span",null,fmtDate(e.tanggal)),el("span","chip "+(z?"z":"y"),z?"Ditalangi Zelda":"Dibayar Yangti"),el("span","chip",CAT_LABEL[e.kategori]||"Lain-lain"));
+      if(z)meta.appendChild(el("span","chip "+(e.diganti?"paid":"due"),e.diganti?("Sudah diganti"+(e.digantiTgl?" "+fmtDate(e.digantiTgl):"")):"Belum diganti"));
+      if(e.oleh){const pr=profiles[e.oleh];meta.appendChild(el("span",null,"dicatat "+((pr&&pr.name)||(e.oleh===myId?"kamu":"seseorang"))));}
+      left.append(el("div","what",e.ket||"(tanpa keterangan)"),meta);
+      if(e.catatan)left.appendChild(el("div","meta",e.catatan));
+      row.append(left,el("div","amt num",rp(e.jumlah)));
+      const tools=el("div","tools");let has=false;
+      if(e.nota){has=true;const a=el("button","btn ghost small",e.notaTipe==="application/pdf"?"Lihat nota (PDF)":"Lihat foto nota");a.type="button";
+        a.addEventListener("click",async()=>{const w=e.notaTipe==="application/pdf"?window.open("","_blank"):null;a.disabled=true;a.textContent="Memuat…";
+          try{const r=await api.call({op:"nota",id:e.nota});const bin=atob(r.base64);const u8=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);
+            const url=URL.createObjectURL(new Blob([u8],{type:r.type}));
+            if(w){w.location=url;a.disabled=false;a.textContent="Lihat nota (PDF)";}
+            else{const img=el("img","thumb");img.alt="Foto nota";img.src=url;img.style.cursor="zoom-in";img.addEventListener("click",()=>window.open(url,"_blank"));a.replaceWith(img);}}
+          catch(_){if(w)w.close();a.disabled=false;a.textContent="Nota gagal dimuat, coba lagi";}});
+        tools.appendChild(a);}
+      if(z&&isOwner){has=true;const b=el("button","btn ghost small",e.diganti?"Batalkan tanda diganti":"Tandai sudah diganti");b.type="button";
+        b.addEventListener("click",async()=>{b.disabled=true;try{await db.collection("belanja").doc(e.id).update(e.diganti?{diganti:false,digantiTgl:""}:{diganti:true,digantiTgl:todayISO()});}catch(_){b.disabled=false;b.textContent="Gagal, coba lagi";}});tools.appendChild(b);}
+      if(isOwner||(myId&&e.oleh===myId&&!e.diganti)){has=true;const del=el("button","btn ghost small","Hapus");del.type="button";let armed=false;
+        del.addEventListener("click",async()=>{if(!armed){armed=true;del.textContent="Yakin hapus? Ketuk lagi";del.style.color="var(--bad)";setTimeout(()=>{if(armed){armed=false;del.textContent="Hapus";del.style.color="";}},4000);return;}del.disabled=true;try{await db.collection("belanja").doc(e.id).delete();}catch(_){del.disabled=false;del.textContent="Gagal menghapus";}});tools.appendChild(del);}
+      if(has)row.appendChild(tools);
+      box.appendChild(row);
+    }
+  }
+  function renderAll(){
+    const months=allMonths();
+    fillSelect("monthPick",months,false);fillSelect("absMonth",months,false);fillSelect("fMonth",months,true);
+    renderHero();renderStats();renderAdvForm();renderMonth();renderCal();renderRecap();renderLedger();
+  }
+
+  // ---------- recap text ----------
+  function recapText(){
+    const t=todayISO();const mk=monthKey(t);let y=0,z=0;
+    belanja.forEach(e=>{if(monthKey(e.tanggal)===mk){if(e.bayar==="zelda")z+=e.jumlah||0;else y+=e.jumlah||0;}});
+    const due=belanja.filter(e=>e.bayar==="zelda"&&!e.diganti).reduce((a,e)=>a+(e.jumlah||0),0);
+    const L=["*Kas Perawatan Emak*","per "+fmtDate(t),"","*Pengeluaran Emak "+monthLabel(mk)+"*","- Dibayar Yangti: "+rp(y),"- Ditalangi Zelda: "+rp(z),"- Total: "+rp(y+z),"","Talangan Zelda belum diganti: "+rp(due)];
+    if(cfg.gaji&&cfg.mulai){const now=salary(mk,t);const P=payroll(mk);const u=unpaidPast();
+      L.push("","*Gaji Zelda "+monthLabel(mk)+"*","- Terkumpul s/d "+fmtDate(t)+": "+rp(now.amount)+" ("+now.paidDays+" hari dibayar)","- Advance diambil: "+rp(P.adv),"- Perkiraan gaji bersih "+fmtDate(nextMonthFirst(mk))+": "+rp(P.net));
+      if(u.sum)L.push("- Gaji bulan lalu belum dibayar: "+rp(u.sum));}
+    return L.join("\n");
+  }
+  $("copyBtn").addEventListener("click",()=>{
+    const text=recapText();const fb=$("copyFallback");
+    const fallback=()=>{fb.hidden=false;fb.value=text;fb.focus();fb.select();setMsg("copyMsg","Salin teks di bawah secara manual.","");};
+    try{navigator.clipboard.writeText(text).then(()=>{fb.hidden=true;setMsg("copyMsg","Rekap tersalin. Tempel di WhatsApp.","okc");},fallback);}catch(_){fallback();}
+  });
+
+  async function shrink(file){
+    if(!file.type.startsWith("image/")||file.type==="image/gif")return file;
+    try{const bmp=await createImageBitmap(file);const s=Math.min(1,1600/Math.max(bmp.width,bmp.height));
+      if(s===1&&file.size<1.5e6)return file;
+      const c=document.createElement("canvas");c.width=Math.round(bmp.width*s);c.height=Math.round(bmp.height*s);c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);
+      const b=await new Promise(r=>c.toBlob(r,"image/jpeg",0.82));return b||file;}catch(_){return file;}
+  }
+
+  // ---------- submit ----------
+  $("formOut").addEventListener("submit",async ev=>{
+    ev.preventDefault();
+    if(!db){setMsg("oMsg","Belum tersambung. Masukkan PIN dulu.","err");return;}
+    const tanggal=$("oDate").value,jumlah=digits($("oAmt").value),ket=$("oWhat").value.trim();
+    const bayar=document.querySelector('input[name="pay"]:checked').value;
+    if(!tanggal||!jumlah||!ket){setMsg("oMsg","Isi tanggal, jumlah, dan barang dulu.","err");return;}
+    const btn=$("oSubmit");btn.disabled=true;setMsg("oMsg","Menyimpan…","");
+    let nota=null,notaTipe=null,photoWarn="";
+    const file=$("oPhoto").files[0];
+    if(file){if(!assets)photoWarn="Foto belum bisa diunggah dari akun ini; kirim lewat WhatsApp.";
+      else{try{const b=await shrink(file);const r=await assets.upload(b,{type:b.type||file.type||"image/jpeg"});nota=r.id;notaTipe=r.contentType;}
+        catch(err){photoWarn=(err&&err.code)==="too_large"?"Foto terlalu besar, disimpan tanpa foto.":"Foto gagal diunggah, disimpan tanpa foto.";}}}
+    try{const body={tanggal,jumlah,ket,bayar,kategori:$("oCat").value,catatan:$("oNote").value.trim(),oleh:myId,dibuat:new Date().toISOString()};
+      if(bayar==="zelda")body.diganti=false;if(nota){body.nota=nota;body.notaTipe=notaTipe;}
+      await db.collection("belanja").add(body);
+      $("oAmt").value="";$("oWhat").value="";$("oNote").value="";$("oPhoto").value="";
+      setMsg("oMsg","Tersimpan: "+ket+" "+rp(jumlah)+(bayar==="zelda"?" (ditalangi Zelda)":" (dibayar Yangti)")+"."+(photoWarn?" "+photoWarn:""),photoWarn?"err":"okc");}
+    catch(err){setMsg("oMsg",(err&&err.code)==="invalid_argument"?"PIN ini tidak diizinkan mencatat ini.":"Gagal menyimpan. Periksa sinyal lalu coba lagi.","err");}
+    finally{btn.disabled=false;}
+  });
+  $("formCfg").addEventListener("submit",async ev=>{
+    ev.preventDefault();$("cSubmit").disabled=true;
+    try{await db.doc("config/main").set({gaji:digits($("cGaji").value),mulai:$("cMulai").value||""});setMsg("cMsg","Pengaturan tersimpan.","okc");}
+    catch(_){setMsg("cMsg","Gagal menyimpan pengaturan.","err");}finally{$("cSubmit").disabled=false;}
+  });
+
+  // ---------- boot ----------
+  renderAll();
+  setInterval(()=>{if(!document.hidden)renderHero();},60000);
+  // ---------- backend: Google Apps Script + Google Sheet ----------
+  const API_URL="https://script.google.com/macros/s/AKfycbywG9-dDRFJUgWYp6L5DvRE6PkHiNScREFI0_f5ND_28_hJv7stVna-GCAEt0c1PYWg/exec";
+  const PIN_KEY="kasEmakPin";
+  let pin=null;try{pin=localStorage.getItem(PIN_KEY);}catch(_){}
+  let store=null,pending=0;const subs=[];
+  async function call(body){
+    if(!API_URL)throw Object.assign(new Error("belum disambungkan"),{code:"no_api"});
+    let r;try{r=await fetch(API_URL,{method:"POST",body:JSON.stringify(Object.assign({pin},body))});}catch(e){throw Object.assign(new Error("jaringan"),{code:"network"});}
+    let j;try{j=await r.json();}catch(e){throw Object.assign(new Error("respon"),{code:"network"});}
+    if(!j.ok){const code=j.error==="tidak diizinkan"?"invalid_argument":j.error==="too_large"?"too_large":j.error;throw Object.assign(new Error(j.error),{code});}
+    return j;
+  }
+  function emit(){if(!store)return;subs.forEach(s=>{const c=store[s.col]||{};
+    if(s.doc){const d=c[s.doc];s.cb({id:s.doc,exists:!!d,data:()=>d});}
+    else s.cb({docs:Object.keys(c).map(id=>({id,exists:true,data:()=>c[id]}))});});
+    $("syncNote").textContent="Tersinkron "+new Intl.DateTimeFormat("id-ID",{timeZone:"Asia/Jakarta",hour:"2-digit",minute:"2-digit"}).format(new Date())+" WIB";}
+  function take(j){if(j&&j.data&&!pending){store=j.data;emit();}else if(j&&j.data){store=j.data;}}
+  async function write(op,col,id,data){
+    // tampil langsung di layar, lalu disimpan; kalau gagal, dikembalikan
+    const snapshot=JSON.stringify(store||{});
+    if(store&&op!=="add"){store[col]=store[col]||{};
+      if(op==="delete")delete store[col][id];
+      else store[col][id]=op==="update"?Object.assign({},store[col][id],data):Object.assign({},data);emit();}
+    pending++;
+    try{const j=await call({op,col,id,data});pending--;take(j);if(!pending)emit();return j;}
+    catch(e){pending--;store=JSON.parse(snapshot);emit();throw e;}
+  }
+  const coll=col=>({
+    onSnapshot(cb){subs.push({col,cb});if(store)emit();return()=>{};},
+    doc:id=>({set:d=>write("set",col,id,d),update:d=>write("update",col,id,d),delete:()=>write("delete",col,id)}),
+    add:d=>write("add",col,null,d).then(j=>({id:j.id}))
+  });
+  const api={call,collection:coll,doc:path=>{const[col,id]=path.split("/");return{
+    onSnapshot(cb){subs.push({col,doc:id,cb});if(store)emit();return()=>{};},
+    set:d=>write("set",col,id,d)};}};
+  const toB64=blob=>new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(String(fr.result).split(",")[1]);fr.onerror=rej;fr.readAsDataURL(blob);});
+  const NAMES={adib:"Mas Adib",zelda:"Zelda"};
+  async function refresh(){if(pending||!pin)return;try{take(await call({op:"load"}));}catch(e){if(e.code==="pin"){logout();}}}
+  function logout(){pin=null;try{localStorage.removeItem(PIN_KEY);}catch(_){}location.reload();}
+  function start(role){
+    db=api;myId=role;isOwner=role==="adib";
+    user={me:async()=>({id:role,isOwner}),can:async()=>true,profiles:async ids=>Object.fromEntries(ids.map(i=>[i,{name:NAMES[i]||i}]))};
+    assets={upload:async(blob,o)=>{const r=await call({op:"upload",type:(o&&o.type)||blob.type||"image/jpeg",base64:await toB64(blob)});return{id:r.id,contentType:r.contentType};}};
+    $("gate").hidden=true;$("app").hidden=false;
+    const who=$("who");who.textContent="";who.append("Masuk sebagai "+(NAMES[role]||role)+" · ");const lo=el("button",null,"Keluar");lo.type="button";lo.addEventListener("click",logout);who.appendChild(lo);
+    if(isOwner)$("settingsBox").hidden=false;
+    const listOf=snap=>snap.docs.filter(s=>s.exists).map(s=>Object.assign({id:s.id},s.data()));
+    db.collection("belanja").onSnapshot(snap=>{belanja=listOf(snap);belanja.sort((x,y)=>(y.tanggal||"").localeCompare(x.tanggal||"")||(y.dibuat||"").localeCompare(x.dibuat||""));renderAll();});
+    db.collection("absen").onSnapshot(snap=>{absen={};snap.docs.forEach(s=>{if(s.exists)absen[s.id]=s.data();});renderAll();});
+    db.collection("gaji").onSnapshot(snap=>{gajiDocs={};snap.docs.forEach(s=>{if(s.exists)gajiDocs[s.id]=s.data();});renderAll();});
+    db.collection("kasbon").onSnapshot(snap=>{kasbon=listOf(snap);renderAll();});
+    db.collection("pengajuan").onSnapshot(snap=>{pengajuan=listOf(snap);renderAll();});
+    db.doc("config/main").onSnapshot(s=>{const v=(s.exists&&s.data())||{};cfg={gaji:+v.gaji||0,mulai:v.mulai||""};
+      if(document.activeElement!==$("cGaji"))$("cGaji").value=cfg.gaji?fmtNum.format(cfg.gaji):"";
+      if(document.activeElement!==$("cMulai"))$("cMulai").value=cfg.mulai;renderAll();});
+    emit();
+    setInterval(()=>{if(!document.hidden)refresh();},45000);
+    document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh();});
+  }
+  async function login(p,silent){
+    const btn=$("gateBtn");btn.disabled=true;if(!silent)setMsg("gateMsg","Memeriksa…","");
+    pin=p;
+    try{const j=await call({op:"load"});try{localStorage.setItem(PIN_KEY,p);}catch(_){}store=j.data;start(j.role);}
+    catch(e){pin=null;try{localStorage.removeItem(PIN_KEY);}catch(_){}
+      $("gate").hidden=false;$("app").hidden=true;
+      setMsg("gateMsg",e.code==="pin"?"PIN salah. Coba lagi.":e.code==="terkunci"?"Terlalu banyak PIN salah. Coba lagi 15 menit lagi.":e.code==="no_api"?"Halaman belum disambungkan ke penyimpanan. Hubungi Mas Adib.":"Tidak bisa tersambung. Periksa sinyal lalu coba lagi.","err");}
+    finally{btn.disabled=false;}
+  }
+  $("gateForm").addEventListener("submit",ev=>{ev.preventDefault();const p=$("gatePin").value.trim();if(p)login(p);});
+  if(pin){$("gate").hidden=true;$("app").hidden=false;setMsg("gateMsg","","");login(pin,true);}
+})();
+</script>
+</body>
+</html>
