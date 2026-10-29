@@ -318,7 +318,7 @@ footer{font-size:12px;color:var(--muted);text-align:center}
           <label for="posE"><input type="radio" name="pos" id="posE" value="emak" checked><span>Emak<small>Perawatan</small></span></label>
           <label for="posR"><input type="radio" name="pos" id="posR" value="rumah"><span>Rumah<small>Ngantang</small></span></label>
           <label for="posK"><input type="radio" name="pos" id="posK" value="kebun"><span>Kebun<small>Kopi</small></span></label>
-          <label for="posA"><input type="radio" name="pos" id="posA" value="adib"><span>Mas Adib<small>Pribadi</small></span></label>
+          <label for="posA"><input type="radio" name="pos" id="posA" value="adib"><span>Om Adib<small>Pribadi</small></span></label>
         </div>
       </fieldset>
       <label for="oCat">Kategori<select id="oCat"></select><span class="hint" id="catHint"></span></label>
@@ -335,7 +335,7 @@ footer{font-size:12px;color:var(--muted);text-align:center}
         <label for="vAmt">Jumlah (Rp)<input class="money" id="vAmt" inputmode="numeric" autocomplete="off" placeholder="0"></label>
         <label for="vWhy">Keperluan<input id="vWhy" maxlength="160" placeholder="mis. bayar sekolah"></label>
       </div>
-      <span class="hint" id="advHint">Advance memotong gaji bulan ini. Pengajuan baru berlaku setelah disetujui Mas Adib.</span>
+      <span class="hint" id="advHint">Advance memotong gaji bulan ini. Pengajuan baru berlaku setelah disetujui Om Adib.</span>
       <button class="btn" type="submit" id="vSubmit">Ajukan advance</button>
       <div class="formmsg" id="vMsg" role="status"></div>
     </form>
@@ -380,7 +380,7 @@ footer{font-size:12px;color:var(--muted);text-align:center}
       <h2 id="ledgerTitle">Riwayat belanja</h2>
       <div class="filters">
         <select id="fMonth" aria-label="Filter bulan"><option value="all">Semua bulan</option></select>
-        <select id="fPos" aria-label="Filter keperluan"><option value="all">Semua keperluan</option><option value="emak">Emak</option><option value="rumah">Rumah</option><option value="kebun">Kebun</option><option value="adib">Mas Adib</option></select>
+        <select id="fPos" aria-label="Filter keperluan"><option value="all">Semua keperluan</option><option value="emak">Emak</option><option value="rumah">Rumah</option><option value="kebun">Kebun</option><option value="adib">Om Adib</option></select>
         <select id="fPay" aria-label="Filter pembayar">
           <option value="all">Semua</option><option value="yangti">Dibayar Yangti</option><option value="zelda">Ditalangi Zelda</option><option value="due">Belum diganti</option>
         </select>
@@ -396,7 +396,7 @@ footer{font-size:12px;color:var(--muted);text-align:center}
   <textarea id="copyFallback" rows="10" hidden readonly></textarea>
 
   <details class="card settings" id="settingsBox" hidden>
-    <summary>Pengaturan gaji (hanya Mas Adib)</summary>
+    <summary>Pengaturan gaji (hanya Om Adib)</summary>
     <form id="formCfg" novalidate>
       <div class="row2">
         <label for="cGaji">Gaji bulanan Zelda (Rp)<input class="money" id="cGaji" inputmode="numeric" placeholder="mis. 2.500.000"></label>
@@ -416,7 +416,7 @@ footer{font-size:12px;color:var(--muted);text-align:center}
 <script>
 (function(){
   "use strict";
-  const POS=[["emak","Emak","Perawatan Emak"],["rumah","Rumah","Rumah Ngantang"],["kebun","Kebun","Kebun kopi"],["adib","Mas Adib","Adib (pribadi)"]];
+  const POS=[["emak","Emak","Perawatan Emak"],["rumah","Rumah","Rumah Ngantang"],["kebun","Kebun","Kebun kopi"],["adib","Om Adib","Adib (pribadi)"]];
   const POS_LABEL=Object.fromEntries(POS.map(p=>[p[0],p[2]]));
   // [kunci, pos, nama, termasuk]
   const CATS=[
@@ -439,8 +439,8 @@ footer{font-size:12px;color:var(--muted);text-align:center}
     ["upah","kebun","Upah pekerja kebun","upah harian atau borongan"],
     ["alatkebun","kebun","Alat & perlengkapan kebun","cangkul, gunting pangkas, karung, terpal"],
     ["transkebun","kebun","Angkut & transport kebun","ongkos angkut, bensin ke kebun"],
-    ["transadib","adib","Transport Mas Adib","bensin, tol, ojek atau travel untuk perjalanan Mas Adib"],
-    ["pribadi","adib","Keperluan pribadi Mas Adib","barang atau titipan untuk Mas Adib sendiri"],
+    ["transadib","adib","Transport Om Adib","bensin, tol, ojek atau travel untuk perjalanan Om Adib"],
+    ["pribadi","adib","Keperluan pribadi Om Adib","barang atau titipan untuk Om Adib sendiri"],
     ["lain","*","Lain-lain","yang tidak cocok di kategori lain, tulis keterangannya di Catatan"]
   ];
   const CAT_BY=Object.fromEntries(CATS.map(c=>[c[0],c]));
@@ -528,7 +528,7 @@ footer{font-size:12px;color:var(--muted);text-align:center}
   function statusText(key){
     const a=absen[key];const st=dayStatus(key);if(!a)return "";
     if(st==="hadir")return "Masuk kerja"+(a.jam?" · pukul "+a.jam+" WIB":"");
-    if(st==="libur")return a.dibayar===true?"Libur dibayar (pengecualian Mas Adib)":"Libur mingguan (dibayar)";
+    if(st==="libur")return a.dibayar===true?"Libur dibayar (pengecualian Om Adib)":"Libur mingguan (dibayar)";
     if(a.jenis==="libur")return "Libur ke-2 minggu ini (tidak dibayar)";
     return (JLABEL[a.jenis]||"Izin")+" (tidak dibayar)";
   }
@@ -631,7 +631,7 @@ footer{font-size:12px;color:var(--muted);text-align:center}
     const now=salary(mk,t);const adv=advOf(mk);const pend=pendingOf(mk);const avail=Math.max(0,now.amount-adv-pend);
     [["Gaji terkumpul s/d hari ini",rp(now.amount)],["Advance sudah diambil",rp(adv)],["Pengajuan menunggu",rp(pend)],["Bisa diajukan sekarang",rp(avail)]].forEach(([a,b],i)=>{const dt=el("dt",i===3?"tot":null,a);const dd=el("dd","num"+(i===3?" tot":""),b);dl.append(dt,dd);});
     $("vSubmit").textContent=isOwner?"Catat advance (langsung disetujui)":"Ajukan advance";
-    $("advHint").textContent=isOwner?"Dicatat sebagai advance yang sudah kamu berikan, dan langsung memotong gaji "+monthLabel(mk)+".":"Advance memotong gaji "+monthLabel(mk)+". Pengajuan baru berlaku setelah disetujui Mas Adib.";
+    $("advHint").textContent=isOwner?"Dicatat sebagai advance yang sudah kamu berikan, dan langsung memotong gaji "+monthLabel(mk)+".":"Advance memotong gaji "+monthLabel(mk)+". Pengajuan baru berlaku setelah disetujui Om Adib.";
     $("formAdv").dataset.avail=avail;
   }
   $("formAdv").addEventListener("submit",async ev=>{
@@ -639,13 +639,13 @@ footer{font-size:12px;color:var(--muted);text-align:center}
     const jumlah=digits($("vAmt").value),why=$("vWhy").value.trim();const t=todayISO();
     if(!jumlah){setMsg("vMsg","Isi jumlahnya dulu.","err");return;}
     const avail=+$("formAdv").dataset.avail||0;
-    if(!isOwner&&jumlah>avail){setMsg("vMsg","Melebihi yang bisa diajukan ("+rp(avail)+"). Bicarakan dulu dengan Mas Adib.","err");return;}
+    if(!isOwner&&jumlah>avail){setMsg("vMsg","Melebihi yang bisa diajukan ("+rp(avail)+"). Bicarakan dulu dengan Om Adib.","err");return;}
     const btn=$("vSubmit");btn.disabled=true;
     try{
       if(isOwner) await db.collection("kasbon").add({tanggal:t,jumlah,bulan:monthKey(t),catatan:why,oleh:myId,dibuat:new Date().toISOString()});
       else await db.collection("pengajuan").add({tanggal:t,jumlah,alasan:why,status:"diajukan",oleh:myId,dibuat:new Date().toISOString()});
       $("vAmt").value="";$("vWhy").value="";
-      setMsg("vMsg",isOwner?"Advance "+rp(jumlah)+" tercatat.":"Pengajuan "+rp(jumlah)+" terkirim. Menunggu persetujuan Mas Adib.","okc");
+      setMsg("vMsg",isOwner?"Advance "+rp(jumlah)+" tercatat.":"Pengajuan "+rp(jumlah)+" terkirim. Menunggu persetujuan Om Adib.","okc");
     }catch(err){setMsg("vMsg",(err&&err.code)==="invalid_argument"?"Akun ini belum punya izin.":"Gagal menyimpan. Coba lagi.","err");}
     finally{btn.disabled=false;}
   });
@@ -766,7 +766,7 @@ footer{font-size:12px;color:var(--muted);text-align:center}
   // ---------- payroll ----------
   function renderPay(mk){
     const box=$("payBox");box.innerHTML="";box.appendChild(el("h3",null,"Gaji · "+monthLabel(mk)));
-    if(!cfg.gaji||!cfg.mulai){box.appendChild(el("div","hint","Hitungan gaji muncul setelah Mas Adib mengisi gaji bulanan dan tanggal mulai di Pengaturan."));return;}
+    if(!cfg.gaji||!cfg.mulai){box.appendChild(el("div","hint","Hitungan gaji muncul setelah Om Adib mengisi gaji bulanan dan tanggal mulai di Pengaturan."));return;}
     const P=payroll(mk);const s=P.s;
     if(!s.elapsed){box.appendChild(el("div","hint","Zelda belum bekerja di bulan ini."));return;}
     const t=todayISO();const isCur=monthKey(t)===mk;const sofar=isCur?salary(mk,t):null;
@@ -962,9 +962,9 @@ footer{font-size:12px;color:var(--muted);text-align:center}
     onSnapshot(cb){subs.push({col,doc:id,cb});if(store)emit();return()=>{};},
     set:d=>write("set",col,id,d)};}};
   const toB64=blob=>new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(String(fr.result).split(",")[1]);fr.onerror=rej;fr.readAsDataURL(blob);});
-  const NAMES={adib:"Mas Adib",zelda:"Zelda"};
+  const NAMES={adib:"Om Adib",zelda:"Zelda"};
   async function refresh(){if(pending||!pin)return;try{take(await call({op:"load"}));}catch(e){if(e.code==="kunci"){logout();}}}
-  function logout(){pin=null;try{localStorage.removeItem(PIN_KEY);}catch(_){}gateShow("Link sudah tidak berlaku","Minta link baru ke Mas Adib lewat WhatsApp, lalu buka link itu di HP ini.");}
+  function logout(){pin=null;try{localStorage.removeItem(PIN_KEY);}catch(_){}gateShow("Link sudah tidak berlaku","Minta link baru ke Om Adib lewat WhatsApp, lalu buka link itu di HP ini.");}
   function gateShow(t,m){$("gate").hidden=false;$("app").hidden=true;$("gateTitle").textContent=t;$("gateMsg").textContent=m;}
   function start(role,linkZelda){
     db=api;myId=role;isOwner=role==="adib";
@@ -996,11 +996,11 @@ footer{font-size:12px;color:var(--muted);text-align:center}
     try{const j=await call({op:"load"});try{localStorage.setItem(PIN_KEY,p);}catch(_){}store=j.data;start(j.role,j.linkZelda);}
     catch(e){
       if(e.code==="kunci"){logout();return;}
-      gateShow("Belum tersambung",e.code==="no_api"?"Halaman belum disambungkan ke penyimpanan. Hubungi Mas Adib.":"Periksa sinyal internet, lalu muat ulang halaman ini.");}
+      gateShow("Belum tersambung",e.code==="no_api"?"Halaman belum disambungkan ke penyimpanan. Hubungi Om Adib.":"Periksa sinyal internet, lalu muat ulang halaman ini.");}
   }
   window.addEventListener("hashchange",()=>{if(/k=/.test(location.hash))location.reload();});
   if(pin)login(pin);
-  else gateShow("Buka lewat link dari Mas Adib","Halaman ini hanya terbuka lewat link khusus yang dikirim Mas Adib. Sekali dibuka, HP ini akan mengingatnya.");
+  else gateShow("Buka lewat link dari Om Adib","Halaman ini hanya terbuka lewat link khusus yang dikirim Om Adib. Sekali dibuka, HP ini akan mengingatnya.");
 })();
 </script>
 </body>
