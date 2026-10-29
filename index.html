@@ -310,7 +310,7 @@ footer{font-size:12px;color:var(--muted);text-align:center}
         <label for="oDate">Tanggal<input type="date" id="oDate" required></label>
         <label for="oAmt">Jumlah (Rp)<input class="money" id="oAmt" inputmode="numeric" autocomplete="off" placeholder="0" required></label>
       </div>
-      <label for="oWhat">Barang / keperluan<input id="oWhat" maxlength="120" placeholder="mis. Pampers dewasa M isi 10" required></label>
+      <label for="oWhat">Barang / keperluan<input id="oWhat" maxlength="120" placeholder="mis. Pampers dewasa M isi 10" required><span class="hint">Satu nota berisi barang dari kategori berbeda? Catat terpisah per kategori, supaya rekapnya tepat.</span></label>
       <fieldset>
         <legend>Untuk keperluan</legend>
         <div class="choice choice3">
@@ -420,6 +420,7 @@ footer{font-size:12px;color:var(--muted);text-align:center}
   const CATS=[
     ["pampers","emak","Pampers & perlak","pampers dewasa, underpad/perlak"],
     ["obat","emak","Obat & salep","obat dari dokter/apotek, vitamin, salep atau cream pelindung kulit"],
+    ["oksigen","emak","Oksigen","isi ulang atau sewa tabung oksigen, selang/masker oksigen"],
     ["kulit","emak","Perawatan tubuh Emak","tisu basah, kapas, minyak/lotion, sarung tangan sekali pakai"],
     ["makan","emak","Makanan khusus Emak","susu/nutrisi, bubur, buah khusus untuk Emak (makanan bersama masuk Belanja dapur)"],
     ["alat","emak","Alat bantu perawatan","sprei/alas tidur, bantal penyangga, kain pengangkat, pispot, termometer, tensimeter"],
@@ -857,7 +858,7 @@ footer{font-size:12px;color:var(--muted);text-align:center}
   }
   function renderAll(){
     const months=allMonths();
-    fillSelect("monthPick",months,false);fillSelect("absMonth",months,false);fillSelect("fMonth",months,true);
+    fillSelect("monthPick",months,false);const nextMk=monthKey(nextMonthFirst(monthKey(todayISO())));fillSelect("absMonth",[...new Set([nextMk,...months])].sort().reverse(),false);if(!$("absMonth").dataset.init){$("absMonth").value=monthKey(todayISO());$("absMonth").dataset.init="1";}fillSelect("fMonth",months,true);
     renderHero();renderStats();renderAdvForm();renderMonth();renderCal();renderRecap();renderLedger();
   }
 
