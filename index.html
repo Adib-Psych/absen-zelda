@@ -576,9 +576,10 @@ footer{font-size:12px;color:var(--muted);text-align:center}
     $("heroDay").textContent=HARI_FULL[d.getDay()];
     $("heroDate").textContent=d.getDate()+" "+BLN_FULL[d.getMonth()]+" "+d.getFullYear();
     const a=absen[t];const before=cfg.mulai&&t<cfg.mulai;
-    OPTS.forEach(([id,j])=>{const b=$(id);b.setAttribute("aria-pressed",String(!!a&&(a.jenis===j||(j==="izin"&&a.jenis==="sakit"))));b.disabled=!canWrite||!!before;});
+    OPTS.forEach(([id,j])=>{const b=$(id);b.setAttribute("aria-pressed",String(!!a&&(a.jenis===j||(j==="izin"&&a.jenis==="sakit"))));b.disabled=!canWrite||!!before||isOwner;});
     const note=$("attMsg");
-    if(before) note.textContent="Zelda mulai bekerja "+fmtDate(cfg.mulai)+".";
+    if(isOwner){note.textContent=(a?"Tercatat: "+statusText(t)+(a.catatan?" · "+a.catatan:"")+". ":"Zelda belum absen hari ini. ")+"Absen diisi Zelda dari HP-nya. Untuk koreksi, ketuk tanggalnya di kalender.";}
+    else if(before) note.textContent="Zelda mulai bekerja "+fmtDate(cfg.mulai)+".";
     else if(a){note.textContent="Tercatat: "+statusText(t)+(a.catatan?" · "+a.catatan:"")+". ";
       if(canWrite){const u=el("button","undo","Batalkan");u.type="button";u.addEventListener("click",async()=>{u.disabled=true;try{await setDayUndoable(t,null);}catch(_){u.disabled=false;}});note.appendChild(u);}}
     else note.textContent="Belum diisi. Ketuk salah satu pilihan untuk absen hari ini.";
@@ -613,10 +614,10 @@ footer{font-size:12px;color:var(--muted);text-align:center}
     await db.collection("absen").doc(key).set({tanggal:key,jenis,jam:(key===todayISO()&&jenis==="hadir")?((prev&&prev.jenis==="hadir"&&prev.jam)||nowHM()):(prev&&prev.jam&&jenis==="hadir"?prev.jam:""),catatan:catatan!=null?catatan:(prev&&prev.catatan)||"",oleh:myId,dibuat:new Date().toISOString()});
   }
   OPTS.forEach(([id,j])=>$(id).addEventListener("click",async()=>{
-    const t=todayISO();const a=absen[t];OPTS.forEach(([i])=>$(i).disabled=true);
+    if(isOwner)return;const t=todayISO();const a=absen[t];OPTS.forEach(([i])=>$(i).disabled=true);
     try{await setDayUndoable(t,a&&(a.jenis===j||(j==="izin"&&a.jenis==="sakit"))?null:j);}
     catch(err){$("attMsg").textContent=(err&&(err.code==="invalid_argument"||err.code==="no_write"))?"Akun ini belum punya izin menulis.":"Gagal menyimpan. Coba lagi.";}
-    finally{OPTS.forEach(([i])=>$(i).disabled=!canWrite);}
+    finally{OPTS.forEach(([i])=>$(i).disabled=!canWrite||isOwner);if(document.activeElement)document.activeElement.blur();}
   }));
 
   // ---------- months ----------
@@ -718,17 +719,21 @@ footer{font-size:12px;color:var(--muted);text-align:center}
     p.appendChild(el("h4",null,HARI_FULL[parseISO(key).getDay()]+", "+fmtDate(key)));
     p.appendChild(el("div","hint",a?"Tercatat: "+statusText(key)+". Ketuk pilihan yang sama atau Batalkan isian untuk mengosongkan.":(key>todayISO()?"Belum ada rencana. Pilih untuk mencatat rencana libur atau izin.":"Belum diisi. Untuk sementara dihitung masuk kerja.")));
     const grid=el("div","dopts");
+    // Om Tito mengubah isian Zelda: perlu ketukan kedua (mencegah ketukan tak sengaja)
+    const guard=btn=>{if(!(isOwner&&a&&a.oleh==="zelda"))return false;if(btn.dataset.armed==="1")return false;btn.dataset.armed="1";
+      msg.textContent="Ini isian Zelda. Ketuk sekali lagi untuk menggantinya.";msg.className="formmsg err";
+      setTimeout(()=>{if(btn.dataset.armed==="1"){btn.dataset.armed="";if(msg.textContent.startsWith("Ini isian Zelda"))msg.textContent="";}},4000);return true;};
     const note=el("input");note.id="dayNote";note.maxLength=160;note.placeholder="Keterangan (opsional), mis. pulang ke Malang";note.value=a&&a.catatan||"";
     JENIS.forEach(([j,lab,sub])=>{const b=el("button","dopt");b.type="button";b.setAttribute("aria-pressed",String(!!a&&a.jenis===j));
       const fut=j==="hadir"&&key>todayISO()&&!(a&&a.jenis==="hadir");
       b.append(el("span",null,lab),el("small",null,fut?"diisi pada harinya":sub));b.disabled=!canWrite||fut;
-      b.addEventListener("click",async()=>{b.disabled=true;try{await setDayUndoable(key,a&&a.jenis===j?null:j,note.value.trim());}catch(err){msg.textContent="Gagal menyimpan. Coba lagi.";msg.className="formmsg err";b.disabled=false;}});
+      b.addEventListener("click",async()=>{b.blur();if(guard(b))return;b.disabled=true;try{await setDayUndoable(key,a&&a.jenis===j?null:j,note.value.trim());}catch(err){msg.textContent="Gagal menyimpan. Coba lagi.";msg.className="formmsg err";b.disabled=false;}});
       grid.appendChild(b);});
     p.appendChild(grid);
     const lab=el("label",null,"Keterangan");lab.appendChild(note);note.disabled=!canWrite;p.appendChild(lab);
     const row=el("div");row.style.display="flex";row.style.gap="8px";row.style.flexWrap="wrap";
     if(a&&canWrite){const sv=el("button","btn ghost small","Simpan keterangan");sv.type="button";sv.addEventListener("click",async()=>{sv.disabled=true;try{await setDay(key,a.jenis,note.value.trim());}catch(_){sv.disabled=false;}});row.appendChild(sv);
-      const del=el("button","btn ghost small cancel","Batalkan isian");del.type="button";del.addEventListener("click",async()=>{del.disabled=true;try{await setDayUndoable(key,null);}catch(_){del.disabled=false;}});row.appendChild(del);}
+      const del=el("button","btn ghost small cancel","Batalkan isian");del.type="button";del.addEventListener("click",async()=>{del.blur();if(guard(del))return;del.disabled=true;try{await setDayUndoable(key,null);}catch(_){del.disabled=false;}});row.appendChild(del);}
     if(isOwner&&a&&a.jenis==="libur"&&(a.dibayar===true||dayStatus(key)==="izin")){
       const ex=el("button","btn ghost small",a.dibayar===true?"Batalkan pengecualian":"Tetap dibayar (pengecualian)");ex.type="button";
       ex.addEventListener("click",async()=>{ex.disabled=true;try{await db.collection("absen").doc(key).update({dibayar:a.dibayar!==true});}catch(_){ex.disabled=false;}});row.appendChild(ex);}
@@ -985,6 +990,7 @@ footer{font-size:12px;color:var(--muted);text-align:center}
     else s.cb({docs:Object.keys(c).map(id=>({id,exists:true,data:()=>c[id]}))});});
     $("syncNote").textContent="Tersinkron "+new Intl.DateTimeFormat("id-ID",{timeZone:"Asia/Jakarta",hour:"2-digit",minute:"2-digit"}).format(new Date())+" WIB";}
   function take(j){if(j&&j.data&&!pending){store=j.data;emit();}else if(j&&j.data){store=j.data;}}
+  let wq=Promise.resolve();
   async function write(op,col,id,data){
     // tampil langsung di layar, lalu disimpan; kalau gagal, dikembalikan
     const snapshot=JSON.stringify(store||{});
@@ -992,7 +998,9 @@ footer{font-size:12px;color:var(--muted);text-align:center}
       if(op==="delete")delete store[col][id];
       else store[col][id]=op==="update"?Object.assign({},store[col][id],data):Object.assign({},data);emit();}
     pending++;
-    try{const j=await call({op,col,id,data});pending--;take(j);if(!pending)emit();return j;}
+    // simpan berurutan: perubahan dikirim satu per satu sesuai urutan ketukan
+    const run=wq.then(()=>call({op,col,id,data}));wq=run.catch(()=>{});
+    try{const j=await run;pending--;take(j);if(!pending)emit();return j;}
     catch(e){pending--;store=JSON.parse(snapshot);emit();throw e;}
   }
   const coll=col=>({
