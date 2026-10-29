@@ -259,7 +259,7 @@ footer{font-size:12px;color:var(--muted);text-align:center}
     <div class="opts" role="group" aria-label="Absen Zelda hari ini">
       <button type="button" class="opt" id="optKerja" aria-pressed="false">Masuk kerja<small>dibayar</small></button>
       <button type="button" class="opt" id="optLibur" aria-pressed="false">Libur<small>jatah mingguan</small></button>
-      <button type="button" class="opt" id="optIzin" aria-pressed="false">Izin<small>tidak dibayar</small></button>
+      <button type="button" class="opt" id="optIzin" aria-pressed="false">Izin<small>ada keperluan</small></button>
     </div>
     <div class="today-note" id="attMsg" aria-live="polite"></div>
 
@@ -288,7 +288,7 @@ footer{font-size:12px;color:var(--muted);text-align:center}
     </div>
     <div class="card">
       <div class="cal" id="cal"></div>
-      <div class="legend"><span style="--c:var(--accent)">Masuk kerja</span><span style="--c:var(--pink-soft)">Libur dibayar</span><span style="--c:var(--warn-soft)">Izin / sakit (tidak dibayar)</span><span class="lg-empty">Belum diisi</span></div>
+      <div class="legend"><span style="--c:var(--accent)">Masuk kerja</span><span style="--c:var(--pink-soft)">Libur dibayar</span><span style="--c:var(--warn-soft)">Izin / sakit</span><span class="lg-empty">Belum diisi</span></div>
       <p class="hint calhint">Ketuk tanggal untuk mengisi, mengganti, atau membatalkan absen.</p>
       <div class="daypanel" id="dayPanel" hidden></div>
     </div>
@@ -524,14 +524,14 @@ footer{font-size:12px;color:var(--muted);text-align:center}
 
   // ---------- hero ----------
   const OPTS=[["optKerja","hadir"],["optLibur","libur"],["optIzin","izin"]];
-  const JENIS=[["hadir","Masuk kerja","dibayar"],["libur","Libur mingguan","dibayar, 1 hari/minggu"],["izin","Izin","tidak dibayar"],["sakit","Sakit","tidak dibayar kecuali disepakati"]];
+  const JENIS=[["hadir","Masuk kerja","dibayar"],["libur","Libur mingguan","dibayar, 1 hari/minggu"],["izin","Izin","ada keperluan"],["sakit","Sakit","semoga lekas pulih"]];
   const JLABEL=Object.fromEntries(JENIS.map(j=>[j[0],j[1]]));
   function statusText(key){
     const a=absen[key];const st=dayStatus(key);if(!a)return "";
     if(st==="hadir")return "Masuk kerja"+(a.jam?" · pukul "+a.jam+" WIB":"");
     if(st==="libur")return a.dibayar===true?"Libur dibayar (pengecualian Om Adib)":"Libur mingguan (dibayar)";
-    if(a.jenis==="libur")return "Libur ke-2 minggu ini (tidak dibayar)";
-    return (JLABEL[a.jenis]||"Izin")+" (tidak dibayar)";
+    if(a.jenis==="libur")return "Libur ke-2 minggu ini (di luar jatah libur)";
+    return (JLABEL[a.jenis]||"Izin");
   }
   function renderHero(){
     const t=todayISO();const d=parseISO(t);
@@ -553,7 +553,7 @@ footer{font-size:12px;color:var(--muted);text-align:center}
     const base=full.amount||1;
     $("barAdv").style.width=Math.min(100,adv/base*100)+"%";
     $("barRest").style.width=Math.max(0,Math.min(100,(now.amount-adv)/base*100))+"%";
-    $("earnDays").textContent=now.elapsed?(now.paidDays+" hari dibayar sejak "+fmtDate(now.start)+(now.unpaid?" · "+now.unpaid+" tidak dibayar":"")):"Belum ada hari kerja bulan ini";
+    $("earnDays").textContent=now.elapsed?(now.paidDays+" hari dibayar sejak "+fmtDate(now.start)+(now.unpaid?" · "+now.unpaid+" hari izin/sakit":"")):"Belum ada hari kerja bulan ini";
     const eb=$("earnAdv");eb.textContent="";
     if(adv){eb.append("Advance ");const b=el("b",null,rp(adv));eb.append(b," · sisa ",el("b",null,rp(now.amount-adv)));}
     else eb.textContent="Belum ada advance";
@@ -772,7 +772,7 @@ footer{font-size:12px;color:var(--muted);text-align:center}
     if(!s.elapsed){box.appendChild(el("div","hint","Zelda belum bekerja di bulan ini."));return;}
     const t=todayISO();const isCur=monthKey(t)===mk;const sofar=isCur?salary(mk,t):null;
     const dl=el("dl","kv");
-    const rows=[["Periode",fmtDate(s.start)+" – "+fmtDate(s.end)],["Hari dalam periode",s.period+" hari"],["Masuk kerja tercatat",s.hadir+" hari"],...((s.elapsed-s.hadir-s.paidLibur-s.unpaid)>0?[["Belum diisi (dihitung masuk)",(s.elapsed-s.hadir-s.paidLibur-s.unpaid)+" hari"]]:[]),["Libur mingguan (dibayar)",s.paidLibur+" hari"],["Tidak dibayar",s.unpaid+" hari"],["Tarif per hari ("+rp(cfg.gaji)+" ÷ "+s.days+")",rp(cfg.gaji/s.days)]];
+    const rows=[["Periode",fmtDate(s.start)+" – "+fmtDate(s.end)],["Hari dalam periode",s.period+" hari"],["Masuk kerja tercatat",s.hadir+" hari"],...((s.elapsed-s.hadir-s.paidLibur-s.unpaid)>0?[["Belum diisi (dihitung masuk)",(s.elapsed-s.hadir-s.paidLibur-s.unpaid)+" hari"]]:[]),["Libur mingguan (dibayar)",s.paidLibur+" hari"],["Izin / sakit",s.unpaid+" hari"],["Tarif per hari ("+rp(cfg.gaji)+" ÷ "+s.days+")",rp(cfg.gaji/s.days)]];
     if(sofar)rows.push(["Terkumpul s/d "+fmtDate(t),rp(sofar.amount)]);
     rows.push([(isCur?"Perkiraan gaji kotor":"Gaji kotor"),rp(P.gross)],["Dikurangi advance","− "+rp(P.adv).replace("Rp ","Rp ")],["Gaji bersih dibayar "+fmtDate(nextMonthFirst(mk)),rp(P.net)]);
     rows.forEach(([a,b],i)=>{const last=i===rows.length-1;const dt=el("dt",last?"tot":null,a);const dd=el("dd","num"+(last?" tot":"")+(a==="Dikurangi advance"&&P.adv?" minus":""),b);dl.append(dt,dd);});
