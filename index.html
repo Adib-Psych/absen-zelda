@@ -444,8 +444,9 @@ footer{font-size:12px;color:var(--muted);text-align:center}
     const a=absen[key];if(!a)return null;
     if(a.jenis==="hadir")return "hadir";
     if(a.jenis==="izin"||a.jenis==="sakit")return "izin";
+    if(a.jenis==="libur"&&a.dibayar===true)return "libur";
     const wk=weekKey(key);let n=0;
-    for(const k of Object.keys(absen).sort()){if(absen[k].jenis==="libur"&&weekKey(k)===wk&&(!cfg.mulai||k>=cfg.mulai)){n++;if(k===key)break;}}
+    for(const k of Object.keys(absen).sort()){if(absen[k].jenis==="libur"&&absen[k].dibayar!==true&&weekKey(k)===wk&&(!cfg.mulai||k>=cfg.mulai)){n++;if(k===key)break;}}
     return n>1?"izin":"libur";
   }
   function salary(mk,upto){
@@ -477,7 +478,7 @@ footer{font-size:12px;color:var(--muted);text-align:center}
   function statusText(key){
     const a=absen[key];const st=dayStatus(key);if(!a)return "";
     if(st==="hadir")return "Masuk kerja"+(a.jam?" · pukul "+a.jam+" WIB":"");
-    if(st==="libur")return "Libur mingguan (dibayar)";
+    if(st==="libur")return a.dibayar===true?"Libur dibayar (pengecualian Mas Adib)":"Libur mingguan (dibayar)";
     if(a.jenis==="libur")return "Libur ke-2 minggu ini (tidak dibayar)";
     return (JLABEL[a.jenis]||"Izin")+" (tidak dibayar)";
   }
@@ -627,7 +628,8 @@ footer{font-size:12px;color:var(--muted);text-align:center}
     const grid=el("div","dopts");
     const note=el("input");note.id="dayNote";note.maxLength=160;note.placeholder="Keterangan (opsional), mis. pulang ke Malang";note.value=a&&a.catatan||"";
     JENIS.forEach(([j,lab,sub])=>{const b=el("button","dopt");b.type="button";b.setAttribute("aria-pressed",String(!!a&&a.jenis===j));
-      b.append(el("span",null,lab),el("small",null,sub));b.disabled=!canWrite;
+      const fut=j==="hadir"&&key>todayISO()&&!(a&&a.jenis==="hadir");
+      b.append(el("span",null,lab),el("small",null,fut?"diisi pada harinya":sub));b.disabled=!canWrite||fut;
       b.addEventListener("click",async()=>{b.disabled=true;try{await setDayUndoable(key,a&&a.jenis===j?null:j,note.value.trim());}catch(err){msg.textContent="Gagal menyimpan. Coba lagi.";msg.className="formmsg err";b.disabled=false;}});
       grid.appendChild(b);});
     p.appendChild(grid);
@@ -635,6 +637,9 @@ footer{font-size:12px;color:var(--muted);text-align:center}
     const row=el("div");row.style.display="flex";row.style.gap="8px";row.style.flexWrap="wrap";
     if(a&&canWrite){const sv=el("button","btn ghost small","Simpan keterangan");sv.type="button";sv.addEventListener("click",async()=>{sv.disabled=true;try{await setDay(key,a.jenis,note.value.trim());}catch(_){sv.disabled=false;}});row.appendChild(sv);
       const del=el("button","btn ghost small cancel","Batalkan isian");del.type="button";del.addEventListener("click",async()=>{del.disabled=true;try{await setDayUndoable(key,null);}catch(_){del.disabled=false;}});row.appendChild(del);}
+    if(isOwner&&a&&a.jenis==="libur"&&(a.dibayar===true||dayStatus(key)==="izin")){
+      const ex=el("button","btn ghost small",a.dibayar===true?"Batalkan pengecualian":"Tetap dibayar (pengecualian)");ex.type="button";
+      ex.addEventListener("click",async()=>{ex.disabled=true;try{await db.collection("absen").doc(key).update({dibayar:a.dibayar!==true});}catch(_){ex.disabled=false;}});row.appendChild(ex);}
     const cl=el("button","btn ghost small","Tutup");cl.type="button";cl.addEventListener("click",()=>{selDay=null;renderCal();});row.appendChild(cl);
     p.appendChild(row);
     const msg=el("div","formmsg");p.appendChild(msg);
@@ -650,7 +655,7 @@ footer{font-size:12px;color:var(--muted);text-align:center}
     t.innerHTML="<thead><tr><th>Tanggal</th><th>Jenis &amp; keterangan</th><th>Dibayar</th></tr></thead>";
     const tb=el("tbody");let unrec=0;
     const addRow=(key)=>{const a=absen[key];const st=dayStatus(key);const tr=el("tr");
-      const jenis=a?(a.jenis==="hadir"?"Masuk kerja":a.jenis==="libur"?(st==="libur"?"Libur mingguan":"Libur ke-2"):JLABEL[a.jenis]||a.jenis):"Belum diisi";
+      const jenis=a?(a.jenis==="hadir"?"Masuk kerja":a.jenis==="libur"?(st==="libur"?(a.dibayar===true?"Libur (pengecualian, dibayar)":"Libur mingguan"):"Libur ke-2 minggu ini"):JLABEL[a.jenis]||a.jenis):"Belum diisi";
       if(!a)unrec++;
       const paid=st==="izin"?"Tidak":"Ya";
       const ket=(a&&a.jam?"pukul "+a.jam+(a.catatan?" · ":""):"")+(a&&a.catatan||"");
